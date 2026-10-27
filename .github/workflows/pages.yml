@@ -3,11 +3,11 @@ name: Publish portfolio
 on:
   push:
     branches: [main]
-    paths: [site-manifest.txt, .github/workflows/pages.yml]
+    paths: ['dist/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -23,32 +23,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch website assets
-        env:
-          SOURCE: https://bling-film-portfolio.sandy-crown-1472.chatgpt.site
-        run: |
-          set -euo pipefail
-          while read -r expected size path; do
-            mkdir -p "$(dirname "$path")"
-            curl --fail --location --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 --max-time 180 "$SOURCE/${path#dist/}" -o "$path"
-            actual=$(wc -c < "$path")
-            if (( actual < size * 9 / 10 )); then echo "Incomplete download: $path" >&2; exit 1; fi
-            if [[ "$path" == dist/assets/* ]]; then printf '%s  %s\n' "$expected" "$path" | sha256sum -c -; fi
-          done < site-manifest.txt
-      - name: Store assets in repository
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add dist
-          if ! git diff --cached --quiet; then
-            git commit -m 'Add portfolio website assets'
-            git push origin HEAD:main
-          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
       - id: deployment
         uses: actions/deploy-pages@v4
-
-# Assets are stored in dist; this run publishes the latest commit.
