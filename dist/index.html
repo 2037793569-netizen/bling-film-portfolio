@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fdfdfd">
+  <meta name="description" content="Bling's AI film portfolio — stories, characters and visual experiments.">
+  <title>Bling — AI Film Portfolio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b5cff'/%3E%3Ccircle cx='11' cy='16' r='4' fill='white'/%3E%3Ccircle cx='21' cy='16' r='4' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="recognition.css">
+</head>
+<body class="is-loading">
+  <div class="page-transition-line" id="page-transition-line" aria-hidden="true"></div>
+  <div class="loader" id="loader" role="status" aria-label="Loading films">
+    <div class="loader-top"><span class="wordmark">BLING</span><span>AI FILM PORTFOLIO · 2026</span></div>
+    <div class="loader-center hello-loader">
+      <svg class="hello-script" viewBox="0 0 440 210" role="img" aria-label="hello">
+        <path class="hello-ink" pathLength="1" d="M32 145 C58 130 103 77 103 42 C103 15 84 23 77 46 C67 78 63 124 59 164 C70 124 88 108 101 117 C117 130 88 154 106 163 C119 173 142 156 154 142 C191 123 181 105 167 111 C149 118 144 149 159 161 C181 180 215 145 231 117 C250 86 269 39 255 29 C234 13 213 82 210 127 C207 164 221 175 243 160 C269 143 291 97 307 58 C324 13 296 18 285 46 C273 76 264 117 267 143 C270 175 291 175 314 151 C327 139 331 115 349 112 C374 106 379 132 368 153 C356 178 329 169 331 147 C332 128 343 111 356 112 C367 130 389 137 408 120"/>
+      </svg>
+      <p class="hello-caption">你好，欢迎来到我的影像世界。<span>想象发生在每一帧。</span></p>
+    </div>
+    <div class="loader-footer">
+      <div class="loader-bottom"><span>影像加载中 <span class="loader-cn">请稍候</span></span><span class="loader-number"><b id="load-count">00</b><span>%</span></span><button id="enter-now" class="text-button">跳过</button></div>
+      <div class="load-track"><i id="load-bar"></i></div>
+    </div>
+  </div>
+
+  <header class="site-header" id="site-header">
+    <a class="wordmark" href="#cover" aria-label="Bling home">BLING</a>
+    <span class="header-caption">INDEPENDENT MIND.<br>INFINITE FRAMES.</span>
+    <button class="menu-button" id="menu-button" aria-expanded="false" aria-controls="main-nav">菜单</button>
+    <nav id="main-nav" aria-label="Primary navigation">
+      <a href="#cover" class="active"><span>01</span> 首页</a>
+      <a href="#about"><span>02</span> 关于</a>
+      <a href="#honors"><span>03</span> 荣誉</a>
+      <a href="#works"><span>04</span> 作品</a>
+      <a href="#contact"><span>05</span> 联系</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="intro-sequence" id="cover" aria-label="Opening film and interactive introduction">
+      <div class="intro-sticky">
+        <div class="stage" id="stage">
+          <img class="cover-poster" src="assets/gaze.jpg" alt="Animated character holding the word PORTFOLIO" fetchpriority="high">
+          <canvas id="gaze-canvas" width="2560" height="1440" aria-label="The character's eyes follow the pointer"></canvas>
+          <video id="about-video" class="about-video" muted playsinline preload="none" data-src="assets/about.mp4" poster="assets/about.jpg" aria-label="Bling introduction film"></video>
+          <img class="about-end-frame" src="assets/about.jpg" alt="" aria-hidden="true">
+          <video id="opening" class="opening" muted playsinline preload="auto" poster="assets/opening.jpg" aria-label="Opening animation"><source src="assets/opening.mp4" type="video/mp4"></video>
+          <video id="gaze" class="gaze-source" muted playsinline preload="auto" aria-hidden="true"><source src="assets/gaze.mp4" type="video/mp4"></video>
+        </div>
+
+        <div class="cover-chrome" id="cover-chrome">
+          <div class="cover-topline"><span>AI 影视创作者 / 视觉叙事者</span><span>想象，不设限。</span></div>
+          <div class="cover-bottom">
+            <div class="cover-meta"><span class="eyebrow">作品集</span><span class="byline">BLING</span></div>
+            <a href="#about" class="scroll-link"><span class="scroll-icon" aria-hidden="true"><i></i></span><span>向下滚动，进入故事<span class="en">SCROLL INTO THE STORY</span></span></a>
+            <div class="cover-tools"><span class="gaze-hint">我在看你。<i></i></span><button id="replay" class="text-button" aria-label="重播开场动画">重播 <span>↻</span></button><button id="skip" class="text-button">跳过开场</button></div>
+          </div>
+          <div class="page-edge" aria-hidden="true">01 / 04</div>
+        </div>
+
+        <div class="about-chrome" id="about-chrome">
+          <div class="about-heading"><span class="chapter">02 / 镜头背后</span><span class="about-label">很高兴，在这一帧遇见你。</span></div>
+          <div class="about-footer"><div><span class="eyebrow">你好，我是 BLING。</span><p>用 AI 拓宽想象，<br>用影像讲述故事。</p></div><a class="text-link" href="#honors">继续向下 <span>↓</span></a><span class="folio">AI FILM · VISUAL EXPERIMENTS<br>© 2026 BLING</span></div>
+        </div>
+
+        <div class="sequence-progress" aria-hidden="true"><i id="sequence-progress"></i></div>
+        <div class="scroll-marker" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="recognition section snap-page" id="honors" aria-labelledby="honors-title">
+      <div class="section-kicker"><span>03 / 荣誉与报道</span><span>SELECTED RECOGNITION</span></div>
+      <div class="recognition-heading"><div><span class="recognition-eyebrow">独立创作 · 持续探索</span><h2 id="honors-title">Recognition<span>.</span></h2></div><p>荣誉、奖项与影展入选<br><span>点击下方分类，浏览完整记录</span></p></div>
+      <div class="recognition-index"><button class="recognition-row" data-honor-group="0" aria-haspopup="dialog" aria-controls="honors-overview" aria-label="查看创作者认证，共7项">
+      <span class="recognition-number">01</span>
+      <span class="recognition-label"><strong>创作者认证</strong><small>CREATOR RECOGNITION <b>07</b></small></span>
+      <span class="recognition-preview" aria-hidden="true"><span class="recognition-ticker" style="--duration:65s"><span><span>站酷超级AI设计师</span><i aria-hidden="true">/</i><span>artflo超级创作者</span><i aria-hidden="true">/</i><span>可灵优质创作者</span><i aria-hidden="true">/</i><span>LibTV专业作者</span><i aria-hidden="true">/</i><span>即梦成长计划创作者</span><i aria-hidden="true">/</i><span>站酷金钻设计师</span><i aria-hidden="true">/</i><span>搜狐视频认证AI播主</span><i aria-hidden="true">/</i></span><span><span>站酷超级AI设计师</span><i aria-hidden="true">/</i><span>artflo超级创作者</span><i aria-hidden="true">/</i><span>可灵优质创作者</span><i aria-hidden="true">/</i><span>LibTV专业作者</span><i aria-hidden="true">/</i><span>即梦成长计划创作者</span><i aria-hidden="true">/</i><span>站酷金钻设计师</span><i aria-hidden="true">/</i><span>搜狐视频认证AI播主</span><i aria-hidden="true">/</i></span></span></span>
+      <span class="recognition-arrow" aria-hidden="true">↗</span>
+    </button><button class="recognition-row" data-honor-group="1" aria-haspopup="dialog" aria-controls="honors-overview" aria-label="查看获奖记录，共12项">
+      <span class="recognition-number">02</span>
+      <span class="recognition-label"><strong>获奖记录</strong><small>AWARDS <b>12</b></small></span>
+      <span class="recognition-preview" aria-hidden="true"><span class="recognition-ticker" style="--duration:140s"><span><span>可灵高校AIGC创作大赛NEXTGEN巅峰原力奖</span><i aria-hidden="true">/</i><span>2026青少年国际戏剧影像大会AI单元金奖</span><i aria-hidden="true">/</i><span>北京国际电影节AIGC长片单元最佳视效和最佳声音设计</span><i aria-hidden="true">/</i><span>粤港澳大湾区动画电影周优秀动画短片</span><i aria-hidden="true">/</i><span>百度AIGC未来创作联赛S1优秀奖</span><i aria-hidden="true">/</i><span>百度AIGC未来创作联赛S3铜奖</span><i aria-hidden="true">/</i><span>Tapnow x Afterloop AIGC影像创作营优秀奖</span><i aria-hidden="true">/</i><span>中国好创意大赛全国一等奖</span><i aria-hidden="true">/</i><span>未来设计师全国一等奖</span><i aria-hidden="true">/</i><span>米兰设计周全国三等奖</span><i aria-hidden="true">/</i><span>中国移动10086个online时刻最终专业大奖二等奖</span><i aria-hidden="true">/</i><span>岚图泰山X8AI视频共创大赛最终专业大奖四等奖</span><i aria-hidden="true">/</i></span><span><span>可灵高校AIGC创作大赛NEXTGEN巅峰原力奖</span><i aria-hidden="true">/</i><span>2026青少年国际戏剧影像大会AI单元金奖</span><i aria-hidden="true">/</i><span>北京国际电影节AIGC长片单元最佳视效和最佳声音设计</span><i aria-hidden="true">/</i><span>粤港澳大湾区动画电影周优秀动画短片</span><i aria-hidden="true">/</i><span>百度AIGC未来创作联赛S1优秀奖</span><i aria-hidden="true">/</i><span>百度AIGC未来创作联赛S3铜奖</span><i aria-hidden="true">/</i><span>Tapnow x Afterloop AIGC影像创作营优秀奖</span><i aria-hidden="true">/</i><span>中国好创意大赛全国一等奖</span><i aria-hidden="true">/</i><span>未来设计师全国一等奖</span><i aria-hidden="true">/</i><span>米兰设计周全国三等奖</span><i aria-hidden="true">/</i><span>中国移动10086个online时刻最终专业大奖二等奖</span><i aria-hidden="true">/</i><span>岚图泰山X8AI视频共创大赛最终专业大奖四等奖</span><i aria-hidden="true">/</i></span></span></span>
+      <span class="recognition-arrow" aria-hidden="true">↗</span>
+    </button><button class="recognition-row" data-honor-group="2" aria-haspopup="dialog" aria-controls="honors-overview" aria-label="查看影展入围，共9项">
+      <span class="recognition-number">03</span>
+      <span class="recognition-label"><strong>影展入围</strong><small>OFFICIAL SELECTIONS <b>09</b></small></span>
+      <span class="recognition-preview" aria-hidden="true"><span class="recognition-ticker" style="--duration:95s"><span><span>香港国际AI电影节入围</span><i aria-hidden="true">/</i><span>香港科技大学ai电影节入围</span><i aria-hidden="true">/</i><span>湾区国际影展入围</span><i aria-hidden="true">/</i><span>Bang Awards国际动画电影节入围</span><i aria-hidden="true">/</i><span>悉尼Omni国际电影节入围</span><i aria-hidden="true">/</i><span>KTOWN国际电影节入围</span><i aria-hidden="true">/</i><span>MERGE电影节入围</span><i aria-hidden="true">/</i><span>大学生AI艺术季入围</span><i aria-hidden="true">/</i><span>ICONA动画电影节入围</span><i aria-hidden="true">/</i></span><span><span>香港国际AI电影节入围</span><i aria-hidden="true">/</i><span>香港科技大学ai电影节入围</span><i aria-hidden="true">/</i><span>湾区国际影展入围</span><i aria-hidden="true">/</i><span>Bang Awards国际动画电影节入围</span><i aria-hidden="true">/</i><span>悉尼Omni国际电影节入围</span><i aria-hidden="true">/</i><span>KTOWN国际电影节入围</span><i aria-hidden="true">/</i><span>MERGE电影节入围</span><i aria-hidden="true">/</i><span>大学生AI艺术季入围</span><i aria-hidden="true">/</i><span>ICONA动画电影节入围</span><i aria-hidden="true">/</i></span></span></span>
+      <span class="recognition-arrow" aria-hidden="true">↗</span>
+    </button></div>
+      <div class="recognition-foot"><span>BLING 不凝 / 创作档案</span><span>RECOGNITION IS A MILESTONE. CREATION GOES ON.</span></div>
+    </section>
+
+    <section class="works section snap-page" id="works" aria-labelledby="works-title">
+      <div class="section-kicker"><span>04 / 精选作品</span><span>按类型浏览</span></div>
+      <div class="works-head"><h1 id="works-title">NOT A LIST.<br><em>WORLDS TO ENTER.</em><small>影像 / 音乐<br>品牌 / 教程</small></h1><div class="work-filters" role="tablist" aria-label="作品分类"><button class="active" data-filter="all">全部</button><button data-filter="brand">品牌</button><button data-filter="story">剧情</button><button data-filter="mv">MV</button><button data-filter="experiment">教程</button></div></div>
+      <div class="work-grid categorized">
+        <button class="work-card work-card-featured" data-project="0" data-category="story" aria-label="查看 Kite 剧情短片"><span class="work-media"><img src="assets/kite.png" alt="Kite 剧情短片封面"><i>VIEW FILM</i><small>NARRATIVE SHORT</small></span><span class="work-info"><span><b>Kite</b><small>NARRATIVE SHORT / 2026</small></span><span class="work-no">01</span></span></button>
+        <button class="work-card" data-project="1" data-category="brand" aria-label="查看 2026京东全球科技探索者大会开场片 品牌开场视频"><span class="work-media"><img src="assets/jd-global-tech-opening.png" alt="2026京东全球科技探索者大会开场片封面"><i>VIEW FILM</i><small>BRAND OPENING</small></span><span class="work-info"><span><b>2026京东全球科技探索者大会开场片</b><small>OPENING FILM / 2026</small></span><span class="work-no">02</span></span></button>
+        <button class="work-card" data-project="2" data-category="brand" aria-label="查看 中国移动品牌创意短片"><span class="work-media"><img src="assets/china-mobile-online.png" alt="中国移动品牌创意短片海报"><i>VIEW FILM</i><small>BRAND FILM</small></span><span class="work-info"><span><b>中国移动品牌创意短片</b><small>BRAND AD / 2026</small></span><span class="work-no">03</span></span></button>
+        <button class="work-card" data-project="3" data-category="brand" aria-label="查看 快手公益短片《像岩石一样生活》"><span class="work-media"><img src="assets/kuaishou-solid-as-a-rock.png" alt="《像岩石一样生活》公益纪实短片封面"><i>VIEW FILM</i><small>PUBLIC DOCUMENTARY</small></span><span class="work-info"><span><b>快手公益短片《像岩石一样生活》</b><small>PUBLIC DOCUMENTARY / 2025</small></span><span class="work-no">04</span></span></button>
+        <button class="work-card" data-project="4" data-category="brand" aria-label="查看 地平线HSDx风云T9L 品牌广告"><span class="work-media"><img src="assets/hsd-fengyun-t9l.png" alt="地平线 HSD × 风云 T9L 封面"><i>VIEW FILM</i><small>BRAND TVC</small></span><span class="work-info"><span><b>地平线 HSD × 风云 T9L</b><small>BRAND TVC / 2026</small></span><span class="work-no">05</span></span></button>
+        <button class="work-card" data-project="5" data-category="story" aria-label="查看 CTRL Z 剧情短片"><span class="work-media"><img src="assets/ctrl-z.png" alt="CTRL Z 剧情短片封面"><i>VIEW FILM</i><small>NARRATIVE SHORT</small></span><span class="work-info"><span><b>CTRL Z</b><small>NARRATIVE SHORT / 2026</small></span><span class="work-no">06</span></span></button>
+        <button class="work-card" data-project="6" data-category="story" aria-label="查看 完美花园 剧情短片"><span class="work-media"><img src="assets/perfect-garden.png" alt="完美花园剧情短片封面"><i>VIEW FILM</i><small>NARRATIVE SHORT</small></span><span class="work-info"><span><b>完美花园</b><small>NARRATIVE SHORT / 2025</small></span><span class="work-no">07</span></span></button>
+        <button class="work-card" data-project="7" data-category="brand" aria-label="查看 岚图泰山X8品牌创意短片"><span class="work-media"><img src="assets/the-princess-wish.png" alt="岚图泰山X8品牌创意短片海报"><i>VIEW FILM</i><small>BRAND FILM</small></span><span class="work-info"><span><b>岚图泰山X8品牌创意短片</b><small>SILENT STORY AD / 2026</small></span><span class="work-no">08</span></span></button>
+        <button class="work-card" data-project="8" data-category="brand" aria-label="查看 旺旺品牌创意短片"><span class="work-media"><img src="assets/wangwang-rice-cracker.png" alt="旺旺品牌创意短片封面"><i>VIEW FILM</i><small>BRAND FILM</small></span><span class="work-info"><span><b>旺旺品牌创意短片</b><small>BRAND AD / 2026</small></span><span class="work-no">09</span></span></button>
+        <button class="work-card" data-project="9" data-category="brand" aria-label="查看 美团一对一急送品牌创意短片"><span class="work-media"><img src="assets/meituan-express.png" alt="美团一对一急送品牌创意短片封面"><i>VIEW FILM</i><small>BRAND FILM</small></span><span class="work-info"><span><b>美团一对一急送品牌创意短片</b><small>BRAND AD / 2026</small></span><span class="work-no">10</span></span></button>
+        <button class="work-card" data-project="10" data-category="mv" aria-label="查看 Pony in my head 动画 MV"><span class="work-media"><img src="assets/pony-in-my-head.png" alt="Pony in my head 封面"><i>VIEW FILM</i><small>ANIMATED MV</small></span><span class="work-info"><span><b>PONY IN MY HEAD</b><small>ANIMATED MV / 2026</small></span><span class="work-no">11</span></span></button>
+        <button class="work-card" data-project="11" data-category="mv" aria-label="查看 阿诺拉 三火flame MV"><span class="work-media"><img src="assets/anora-sanhuo-mv.png" alt="阿诺拉 MV 封面"><i>VIEW FILM</i><small>MV</small></span><span class="work-info"><span><b>阿诺拉 · 三火flame</b><small>MV / 2026</small></span><span class="work-no">12</span></span></button>
+        <button class="work-card" data-project="12" data-category="experiment" aria-label="Open tutorial project"><span class="work-media"><img src="assets/about.jpg" alt="Tutorial cover"><i>VIEW FILM</i><small>TUTORIAL</small></span><span class="work-info"><span><b>TUTORIAL · 01</b><small>AI FILMMAKING / PROCESS</small></span><span class="work-no">13</span></span></button>
+      </div>
+    </section>
+
+    <section class="contact section snap-page" id="contact" aria-labelledby="contact-title">
+      <div class="section-kicker"><span>05 / 联系</span><span>OPEN FOR COLLABORATION</span></div>
+      <p class="contact-intro"><span>我是 bling 不凝。</span><span>从故事出发，制作有情绪、有角色的 AI 影像。</span></p><div class="contact-lead"><h2 id="contact-title">LET'S MAKE<br><span>SOMETHING</span><br>MOVE.</h2></div>
+      <div class="contact-details"><div><small>ABOUT ME / 关于我</small><p>AI 影像创作者<br>导演 · 视觉 · 剪辑</p></div><div><small>WHAT I MAKE / 创作方向</small><p>品牌广告 / 剧情短片<br>MV / 教程</p></div><div><small>GET IN TOUCH / 联系方式</small><p>合作与交流，欢迎联系。</p><a class="contact-email" href="mailto:2037793569@qq.com">2037793569@qq.com</a></div></div>
+      <div class="contact-foot"><span>© 2026 BLING 不凝</span><a href="#cover">BACK TO TOP ↑</a></div>
+    </section>
+  </main>
+
+  <dialog class="project-dialog" id="project-dialog" aria-labelledby="dialog-title">
+    <button class="dialog-close" id="dialog-close" aria-label="关闭项目详情">关闭 ×</button>
+    <div class="dialog-visual" id="dialog-visual"><div class="dialog-artwork"><img id="dialog-image" alt="Project cover"><a class="dialog-watch" id="dialog-link" target="_blank" rel="noopener noreferrer" hidden><span class="watch-cue"><small id="dialog-watch-meta">VIEW THE FILM / ZCOOL</small><span class="watch-action"><span id="dialog-watch-label">在站酷观看</span><b aria-hidden="true">↗</b></span></span></a></div></div>
+    <div class="dialog-copy"><span class="chapter" id="dialog-index">PROJECT 01</span><h2 id="dialog-title">PROJECT TITLE</h2><p id="dialog-description">这里可填写项目背景、创作概念、故事梗概与最终成果。</p><dl><div id="dialog-year-row"><dt>YEAR</dt><dd id="dialog-year">2026</dd></div><div><dt>FORMAT</dt><dd id="dialog-format">AI SHORT FILM</dd></div><div id="dialog-award-row" hidden><dt id="dialog-award-label">AWARD / 推荐</dt><dd id="dialog-award"></dd></div></dl><div class="dialog-actions"><button class="text-button" id="dialog-prev">← <span>上一个项目</span></button><button class="text-button" id="dialog-next">下一个项目 <span>→</span></button></div></div>
+  </dialog>
+<dialog id="honors-overview" class="honors-overview" aria-labelledby="honors-overview-title">
+    <div class="honors-overview-shell">
+      <header class="honors-overview-bar"><span>BLING / RECOGNITION ARCHIVE</span><button class="honors-overview-close" type="button">返回荣誉页 <span aria-hidden="true">×</span></button></header>
+      <div class="honors-overview-head"><span class="recognition-eyebrow">荣誉与报道 / 总览</span><h2 id="honors-overview-title">创作者认证</h2><p id="honors-overview-count"></p></div>
+      <nav class="honors-overview-tabs" aria-label="荣誉分类"><button type="button" data-honor-tab="0">创作者认证<span>07</span></button><button type="button" data-honor-tab="1">获奖记录<span>12</span></button><button type="button" data-honor-tab="2">影展入围<span>09</span></button></nav>
+      <ol class="honors-overview-list" id="honors-overview-list"></ol>
+      <footer class="honors-overview-foot">BLING 不凝 <span>END OF SELECTION / 持续创作中</span></footer>
+    </div>
+  </dialog>
+  <div id="media-notice" class="notice" role="status" hidden>影像暂时无法播放，已为你保留静帧。</div>
+  <noscript><style>.loader{display:none!important}.is-loading{overflow:auto!important}.opening{display:none}.intro-sequence{height:100vh!important}.about-video{display:none}</style></noscript>
+  <script src="app.js"></script>
+  <script src="recognition.js"></script>
+</body>
+</html>
+
