@@ -50,3 +50,5 @@ jobs:
           path: dist
       - id: deployment
         uses: actions/deploy-pages@v4
+
+# Assets are stored in dist; this run publishes the latest commit.
