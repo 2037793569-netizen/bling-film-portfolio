@@ -11,7 +11,14 @@ app=app.replace("  function aim(x, y) {","  function aim(x, y) {\n    if (mobile
 marker="  async function bufferFilm(video) {"
 helpers="""  function playFilm(video) {
     video.muted = true; video.defaultMuted = true; video.playsInline = true;
+    const startTime = video.currentTime;
     const attempt = video.play();
+    if (mobileMedia) setTimeout(() => {
+      const active = stage.dataset.scene === (video === intro ? 'opening' : 'about');
+      if (active && !document.hidden && !video.ended && video.readyState >= 2 && video.currentTime < startTime + .05) {
+        playbackRetry.dataset.video = video.id; playbackRetry.hidden = false;
+      }
+    }, 1800);
     return Promise.resolve(attempt).catch(error => {
       const visible = stage.dataset.scene === (video === intro ? 'opening' : 'about');
       if (visible) {
@@ -23,7 +30,7 @@ helpers="""  function playFilm(video) {
   }
   playbackRetry.addEventListener('click', () => {
     const video = $(playbackRetry.dataset.video);
-    if (video) { playbackRetry.hidden = true; playFilm(video); }
+    if (video) { playbackRetry.hidden = true; if (mobileMedia && video.readyState >= 2 && !video.paused) { video.pause(); video.load(); } playFilm(video); }
   });
   [intro, about].forEach(video => video.addEventListener('playing', () => { playbackRetry.hidden = true; }));
   async function bufferFilm(video) {"""
@@ -63,7 +70,7 @@ app=app.replace("intro.classList.remove('finished'); document.body.classList.add
 app=app.replace("await intro.play();","await playFilm(intro);")
 app=app.replace("introState = 'about'; transitionPending = false; about.pause();","introState = 'about'; transitionPending = false; about.pause(); setScene('about-end');")
 app=app.replace("introState = 'waiting'; transitionPending = true; finishIntro();","introState = 'waiting'; transitionPending = true; finishIntro(); setScene('about');")
-app=app.replace("introState = 'playing'; transitionPending = false; finishIntro();","introState = 'playing'; transitionPending = false; finishIntro(); setScene('about');")
+app=app.replace("introState = 'playing'; transitionPending = false; finishIntro();","introState = 'playing'; transitionPending = false; finishIntro(); setScene('about'); if (mobileMedia) about.load();")
 app=app.replace("await about.play();","await playFilm(about);")
 app=app.replace("introState = 'cover'; about.pause();","introState = 'cover'; setScene('cover'); about.pause();")
 app=app.replace("else if (opening) intro.play().catch(finishIntro);","else if (opening) playFilm(intro);")
