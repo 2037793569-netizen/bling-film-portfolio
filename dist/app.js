@@ -13,9 +13,10 @@
   const $ = id => document.getElementById(id);
   const intro = $('opening'), gaze = $('gaze'), about = $('about-video'), canvas = $('gaze-canvas'), sequence = $('cover');
   const ctx = canvas.getContext('2d');
+  ctx.setTransform(.5, 0, 0, .5, 0, 0);
   const gazePoster = document.querySelector('.cover-poster');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const base = document.createElement('canvas'); base.width = 2560; base.height = 1440;
+  const base = document.createElement('canvas'); base.width = 1280; base.height = 720;
   const bc = base.getContext('2d');
   const eyeSprite = new Image(); eyeSprite.src = 'assets/eye-frames.webp';
   const eyeCrop = { x:1000, y:910, w:460, h:130, cols:4 };
@@ -28,12 +29,12 @@
   function notice() { $('media-notice').hidden = false; setTimeout(() => $('media-notice').hidden = true, 5000); }
   function captureGazeFrame() {
     if (ready || !gazePoster.complete || !gazePoster.naturalWidth || !eyeSprite.complete || !eyeSprite.naturalWidth) return;
-    bc.drawImage(gazePoster, 0, 0, 2560, 1440);
+    bc.drawImage(gazePoster, 0, 0, 1280, 720);
     ready = true; drawEyes();
   }
   function drawEyes() {
     if (!ready || opening) return;
-    ctx.clearRect(0, 0, 2560, 1440); ctx.drawImage(base, 0, 0);
+    ctx.clearRect(0, 0, 2560, 1440); ctx.drawImage(base, 0, 0, 2560, 1440);
     const wantedX = 1227.75 + current.x * 65.75;
     const wantedY = 981 + current.y * 26;
     let frameIndex = 0, best = Infinity;
@@ -63,34 +64,55 @@
   sequence.addEventListener('pointerleave', () => aim(0, -.65));
   sequence.addEventListener('pointerdown', event => { if (event.pointerType === 'touch') aim((event.clientX / innerWidth - .5) * 2, (event.clientY / innerHeight - .5) * 2); });
 
+  let introPlaybackToken = 0, introPreparation = null, aboutPreparation = null;
+  async function bufferFilm(video) {
+    const response = await fetch(video.dataset.src, {cache:'force-cache'});
+    if (!response.ok) throw new Error('Film download failed');
+    const blob = await response.blob();
+    video.src = URL.createObjectURL(blob);
+    video.preload = 'auto';
+    await new Promise((resolve, reject) => {
+      video.addEventListener('loadeddata', resolve, {once:true});
+      video.addEventListener('error', reject, {once:true});
+      video.load();
+    });
+  }
+  function prepareIntroVideo() {
+    if (!introPreparation) introPreparation = bufferFilm(intro).catch(error => {
+      introPreparation = null; throw error;
+    });
+    return introPreparation;
+  }
   function finishIntro() {
+    introPlaybackToken++;
     opening = false; intro.pause(); intro.classList.add('finished'); document.body.classList.remove('is-opening');
     captureGazeFrame(); drawEyes(); updateSequence();
+    prepareIntroVideo().then(prepareScrubVideo).catch(() => {});
   }
   async function playIntro() {
     if (!entered) return;
-    forcePageTop(); opening = true; canvas.style.opacity = '0';
-    intro.classList.remove('finished'); document.body.classList.add('is-opening'); intro.currentTime = 0;
-    try { await intro.play(); } catch { finishIntro(); }
-  }
-  let aboutPreparing = false;
-  async function prepareScrubVideo() {
-    if (aboutPreparing || scrubReady) return;
-    aboutPreparing = true;
+    const token = ++introPlaybackToken;
+    forcePageTop(); opening = true;
     try {
-      about.preload = 'auto';
-      about.src = about.dataset.src;
-      about.load();
-      if (about.readyState < 1) await new Promise((resolve, reject) => {
-        about.addEventListener('loadedmetadata', resolve, {once:true});
-        about.addEventListener('error', reject, {once:true});
-      });
+      await prepareIntroVideo();
+      if (token !== introPlaybackToken || !opening) return;
+      canvas.style.opacity = '0';
+      intro.classList.remove('finished'); document.body.classList.add('is-opening'); intro.currentTime = 0;
+      await intro.play();
+    } catch { if (token === introPlaybackToken) { finishIntro(); notice(); } }
+  }
+  function prepareScrubVideo() {
+    if (aboutPreparation) return aboutPreparation;
+    aboutPreparation = bufferFilm(about).then(() => {
       scrubReady = true;
       if (introState === 'about') setAboutEndState();
       else if (transitionPending) startAboutTransition();
       updateSequence();
-    } catch { aboutPreparing = false; notice(); }
+    }).catch(() => { aboutPreparation = null; notice(); });
+    return aboutPreparation;
   }
+  // Download in sequence: opening first, then the short introduction in the background.
+  prepareIntroVideo().then(() => setTimeout(prepareScrubVideo, 800)).catch(notice);
 
   function enter() {
     if (entered) return;
@@ -142,14 +164,21 @@
   async function startAboutTransition() {
     if (!landingReady) return;
     if (introState === 'playing' || introState === 'about') return;
-    if (!scrubReady) { introState = 'waiting'; transitionPending = true; finishIntro(); prepareScrubVideo(); return; }
+    if (!scrubReady) {
+      introState = 'waiting'; transitionPending = true; finishIntro();
+      setVisualState(0, 1, 0);
+      document.documentElement.style.scrollBehavior = 'auto';
+      scrollTo(0, sequence.offsetTop + sequence.offsetHeight - innerHeight);
+      requestAnimationFrame(() => document.documentElement.style.removeProperty('scroll-behavior'));
+      prepareScrubVideo(); return;
+    }
     $('stage').classList.remove('about-quick-finish');
-    introState = 'playing'; transitionPending = false; finishIntro(); about.currentTime = 0; about.playbackRate = 1.25;
+    introState = 'playing'; transitionPending = false; finishIntro(); about.currentTime = 0; about.playbackRate = 1;
     setVisualState(0, 1, 0); $('sequence-progress').style.width = '0%';
     document.documentElement.style.scrollBehavior = 'auto';
     scrollTo(0, sequence.offsetTop + sequence.offsetHeight - innerHeight);
     requestAnimationFrame(() => document.documentElement.style.removeProperty('scroll-behavior'));
-    try { await about.play(); } catch { setAboutEndState(); }
+    try { await about.play(); } catch { if (introState === 'playing') setAboutEndState(); }
   }
   function resetToCover() {
     $('stage').classList.remove('about-quick-finish');
