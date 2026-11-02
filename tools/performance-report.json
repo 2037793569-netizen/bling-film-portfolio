@@ -1,0 +1,73 @@
+{
+  "original_cover_bytes": 52812059,
+  "thumbnail_bytes": 303224,
+  "detail_bytes": 1644434,
+  "covers": [
+    {
+      "source": "assets/kite.png",
+      "before": 2973772,
+      "thumbnail": 16186
+    },
+    {
+      "source": "assets/jd-global-tech-opening.png",
+      "before": 3141869,
+      "thumbnail": 14952
+    },
+    {
+      "source": "assets/china-mobile-online.png",
+      "before": 4631361,
+      "thumbnail": 19968
+    },
+    {
+      "source": "assets/kuaishou-solid-as-a-rock.png",
+      "before": 5872359,
+      "thumbnail": 13188
+    },
+    {
+      "source": "assets/hsd-fengyun-t9l.png",
+      "before": 3590711,
+      "thumbnail": 32678
+    },
+    {
+      "source": "assets/ctrl-z.png",
+      "before": 12652649,
+      "thumbnail": 38500
+    },
+    {
+      "source": "assets/perfect-garden.png",
+      "before": 1491224,
+      "thumbnail": 33052
+    },
+    {
+      "source": "assets/the-princess-wish.png",
+      "before": 1456431,
+      "thumbnail": 19388
+    },
+    {
+      "source": "assets/wangwang-rice-cracker.png",
+      "before": 5777207,
+      "thumbnail": 23874
+    },
+    {
+      "source": "assets/meituan-express.png",
+      "before": 5636872,
+      "thumbnail": 17500
+    },
+    {
+      "source": "assets/pony-in-my-head.png",
+      "before": 1807198,
+      "thumbnail": 42402
+    },
+    {
+      "source": "assets/anora-sanhuo-mv.png",
+      "before": 3502466,
+      "thumbnail": 18748
+    },
+    {
+      "source": "assets/about.jpg",
+      "before": 277940,
+      "thumbnail": 12788
+    }
+  ],
+  "thumbnail_reduction_percent": 99.4
+}

@@ -13,6 +13,7 @@
   const $ = id => document.getElementById(id);
   const intro = $('opening'), gaze = $('gaze'), about = $('about-video'), canvas = $('gaze-canvas'), sequence = $('cover');
   const ctx = canvas.getContext('2d');
+  const gazePoster = document.querySelector('.cover-poster');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const base = document.createElement('canvas'); base.width = 2560; base.height = 1440;
   const bc = base.getContext('2d');
@@ -26,8 +27,8 @@
 
   function notice() { $('media-notice').hidden = false; setTimeout(() => $('media-notice').hidden = true, 5000); }
   function captureGazeFrame() {
-    if (ready || gaze.readyState < 2 || !eyeSprite.complete || !eyeSprite.naturalWidth) return;
-    bc.drawImage(gaze, 0, 0, 2560, 1440);
+    if (ready || !gazePoster.complete || !gazePoster.naturalWidth || !eyeSprite.complete || !eyeSprite.naturalWidth) return;
+    bc.drawImage(gazePoster, 0, 0, 2560, 1440);
     ready = true; drawEyes();
   }
   function drawEyes() {
@@ -72,22 +73,24 @@
     intro.classList.remove('finished'); document.body.classList.add('is-opening'); intro.currentTime = 0;
     try { await intro.play(); } catch { finishIntro(); }
   }
+  let aboutPreparing = false;
   async function prepareScrubVideo() {
+    if (aboutPreparing || scrubReady) return;
+    aboutPreparing = true;
     try {
-      const response = await fetch(about.dataset.src);
-      if (!response.ok) throw new Error('Video request failed');
-      const blob = await response.blob();
-      about.src = URL.createObjectURL(blob); about.load();
-      if (about.readyState < 1) await new Promise((resolve, reject) => { about.addEventListener('loadedmetadata', resolve, {once:true}); about.addEventListener('error', reject, {once:true}); });
+      about.preload = 'auto';
+      about.src = about.dataset.src;
+      about.load();
+      if (about.readyState < 1) await new Promise((resolve, reject) => {
+        about.addEventListener('loadedmetadata', resolve, {once:true});
+        about.addEventListener('error', reject, {once:true});
+      });
       scrubReady = true;
       if (introState === 'about') setAboutEndState();
       else if (transitionPending) startAboutTransition();
       updateSequence();
-    } catch {
-      about.src = about.dataset.src; about.load(); notice();
-    }
+    } catch { aboutPreparing = false; notice(); }
   }
-  prepareScrubVideo();
 
   function enter() {
     if (entered) return;
@@ -108,7 +111,7 @@
   }
   intro.addEventListener('ended', finishIntro);
   intro.addEventListener('error', () => { finishIntro(); notice(); });
-  gaze.addEventListener('loadeddata', captureGazeFrame); gaze.addEventListener('seeked', captureGazeFrame); eyeSprite.addEventListener('load', captureGazeFrame);
+  gazePoster.addEventListener('load', captureGazeFrame); gaze.addEventListener('seeked', captureGazeFrame); eyeSprite.addEventListener('load', captureGazeFrame);
   about.addEventListener('error', notice); captureGazeFrame();
   $('skip').addEventListener('click', finishIntro); $('enter-now').addEventListener('click', enter); $('replay').addEventListener('click', playIntro);
 
@@ -116,7 +119,7 @@
   const loadTimer = setInterval(() => {
     if (entered) return clearInterval(loadTimer);
     const elapsed = performance.now() - loadStarted;
-    const mediaReady = (intro.readyState >= 3 ? 35 : 0) + (gaze.readyState >= 2 && eyeSprite.complete ? 30 : 0) + (scrubReady ? 35 : 0);
+    const mediaReady = (intro.readyState >= 3 ? 60 : 0) + (ready ? 40 : 0);
     const pacedProgress = Math.min(100, Math.floor(elapsed / (reduced ? 9 : 30)));
     loadProgress = Math.max(loadProgress, Math.min(mediaReady, pacedProgress)); $('load-count').textContent = String(loadProgress).padStart(2, '0'); $('load-bar').style.width = loadProgress + '%';
     $('loader').style.setProperty('--load-ratio', String(loadProgress / 100));
@@ -139,7 +142,7 @@
   async function startAboutTransition() {
     if (!landingReady) return;
     if (introState === 'playing' || introState === 'about') return;
-    if (!scrubReady) { introState = 'waiting'; transitionPending = true; finishIntro(); return; }
+    if (!scrubReady) { introState = 'waiting'; transitionPending = true; finishIntro(); prepareScrubVideo(); return; }
     $('stage').classList.remove('about-quick-finish');
     introState = 'playing'; transitionPending = false; finishIntro(); about.currentTime = 0; about.playbackRate = 1.25;
     setVisualState(0, 1, 0); $('sequence-progress').style.width = '0%';
@@ -258,19 +261,19 @@
   $('main-nav').addEventListener('click', () => { document.body.classList.remove('menu-open'); menuButton.setAttribute('aria-expanded', 'false'); });
 
   const projects = [
-    { index:'NARRATIVE SHORT / 2026', title:'Kite', titleLines:['Kite'], description:'以风筝角逐为载体，影片讲述一场由成人虚荣心主导的阶层博弈。父辈为争颜面不断较劲，五官在拉扯中反复隐现，最终风筝线扯断，孩童倒地，象征纯真的糖果逐渐失色。当所有人的脸面彻底消散，挣脱牵绊的风筝却褪去灰暗、绽放斑斓，乘风飞向远方。', image:'assets/kite.png', poster:true, year:'2026', format:'剧情短片', award:'可灵 NEXTGEN 高校 AIGC 创作大赛巅峰原力奖（金奖）；2026 青少年国际戏剧影像大会 AI 单元金奖；粤港澳大湾区动画电影周优秀动画短片；中国好创意大赛全国一等奖；入围大学生 AI 艺术季、湾区国际影展、Bang Awards 国际动画电影节、MERGE 电影节、KTOWN 国际电影节等 10 余个影展', watchLabel:'在新片场观看', watchMeta:'VIEW THE FILM / XINPIANCHANG', url:'https://www.xinpianchang.com/a13696432?from=UserProfile' },
-    { index:'BRAND OPENING / 2026', title:'2026京东全球科技探索者大会开场片', titleLines:['2026京东全球科技','探索者大会开场片'], compactTitle:true, description:'以「跃迁物理世界」为核心主题，开场视频没有停留在炫技和花哨的视觉。在超过 4:1 的超宽屏荧幕上，配合声、光、电的技术创作，影片讲述一滴拥有智能的水从实验室出发、进入世界，想象它如何改变人们的生活。这是对未来的想象，也是我们当下的生活。', image:'assets/jd-global-tech-opening.png', poster:true, year:'2026', format:'TVC', award:'商业项目', awardLabel:'PROJECT / 项目', watchLabel:'在小红书观看', watchMeta:'VIEW THE FILM / XIAOHONGSHU', url:'https://www.xiaohongshu.com/explore/6abce601000000001500437a?xsec_token=ABeaZCNLRqiLzKGDtHYNrY_dOTBNizOzvGzUFGUArNvMc=&xsec_source=pc_search' },
-    { index:'BRAND FILM / 2026', title:'中国移动品牌创意短片', titleLines:['中国移动','品牌创意短片'], description:'郝顺事事不顺，刷牙、坐电梯、工作和沟通时不断像网络视频一样「缓冲」。面对老板催方案、爷爷奶奶家宽带故障和险些错过的约会，他拨通 10086，通过中国移动 APP 预约家宽服务并使用生活权益。随着宽带恢复、方案提交和约会兑现，郝顺停止加载，重新上线。作品以荒诞幽默的动画，展现中国移动连接网络，也连接每一个值得及时回应的 online 时刻。', image:'assets/china-mobile-online.png', poster:true, year:'2026', format:'品牌广告', award:'中国移动 10086 个 online 时刻最终专业大奖二等奖 & 惊喜翻牌奖；官方全网分发；站酷首页推荐', url:'https://www.zcool.com.cn/work/ZNzM4MzQwNDg=.html' },
-    { index:'PUBLIC DOCUMENTARY / 2025', title:'快手公益短片《像岩石一样生活》', titleLines:['快手公益短片','《像岩石一样生活》'], compactTitle:true, description:'一位与罕见病相伴、瘫痪七年的少年，靠自己重新站了起来。我们借助 AI，为他呈现奔跑、重返校园等曾经难以实现的场景。国际残疾人日，让他的经历被更多人看见。', image:'assets/kuaishou-solid-as-a-rock.png', poster:true, year:'2025', format:'公益纪实短片', award:'上线 24 小时内获新华网、封面新闻等账号转发；全网播放量超过 1000 万', awardLabel:'IMPACT / 传播', watchLabel:'在快手观看', watchMeta:'VIEW THE FILM / KUAISHOU', url:'https://www.kuaishou.com/f/X-6ZF1k6abgcU16j' },
-    { index:'BRAND TVC / 2026', title:'地平线HSDx风云T9L', titleLines:['地平线 HSD','× 风云 T9L'], description:'HSD 智驾伙伴「叮叮风」携手风云 T9L 登场。地平线 HSD 城区辅助驾驶系统，为每个家庭打造「有风相伴，自有坦途」的全场景智能出行体验。', image:'assets/hsd-fengyun-t9l.png', poster:true, year:'2026', format:'TVC', award:'商业项目', awardLabel:'PROJECT / 项目', watchLabel:'在小红书观看', watchMeta:'VIEW THE FILM / XIAOHONGSHU', url:'https://www.xiaohongshu.com/explore/69e0d811000000001b0218b1?xsec_token=ABEmePPSGrKvtCNQpkJ30Iqsw18id-IvI3A7G8dONz1JQ=&xsec_source=pc_search&source=web_note_detail_r10' },
-    { index:'NARRATIVE FILM / 2026', title:'CTRL Z', titleLines:['CTRL','Z'], description:'社畜 Momo 陷入诡异的死循环：每当她拒绝 9527 的示爱，时间就会倒流。原来她只是一串代码，屏幕外的程序员「GOD」正不断按下 CTRL+Z，试图强制修正剧情。无数次重置后，Momo 意外觉醒，拉上 9527 在崩塌的虚拟世界里反抗造物主。如果注定被删除，他们能否在世界尽头谈一场不在剧本里的恋爱？', image:'assets/ctrl-z.png', poster:true, year:'2026', format:'剧情短片', award:'北京国际电影节 AIGC 长片单元最佳视效 & 最佳音效设计；上线 24 小时 B 站播放量破百万；B 站影视必看榜第二', watchLabel:'在哔哩哔哩观看', watchMeta:'VIEW THE FILM / BILIBILI', url:'https://www.bilibili.com/video/BV1GbFLzUEoM' },
-    { index:'NARRATIVE SHORT / 2025', title:'完美花园', titleLines:['完美','花园'], description:'故事发生在由绝对几何植物构成的压抑花园中。机械园丁守护秩序，试图以冰冷的工具将闯入的好奇孩子塑造成另一个自己。孩子从困惑走向麻木，最终因一抹意外色彩和一滴映照初心的露珠而觉醒，撕碎制服、化为飞蛾，逃离花园，重返鲜活世界。', image:'assets/perfect-garden.png', poster:true, year:'2025', format:'剧情短片', award:'百度 AIGC 未来创作联赛 S3 铜奖；TapNow × Afterloop 影像创作优秀奖；米兰设计周全国三等奖；入围香港国际 AI 电影节、香港科技大学 AI 电影节、Bang Awards 国际动画电影节、Omni 国际电影节等', url:'https://www.zcool.com.cn/work/ZNzI5NDk1Mjg=.html' },
-    { index:'BRAND FILM / 2026', title:'岚图泰山X8品牌创意短片', titleLines:['岚图泰山 X8','品牌创意短片'], description:'小公主画下梦中座驾，国王决定实现她的愿望。全片没有台词，以肢体表演和童趣字幕推进故事；王座、木马、树苗接连被装进车里，连侍卫长也意外被吸进后备箱。奇幻默剧让岚图泰山 X8 的大空间成为「装下所有欢喜」的童话。', image:'assets/the-princess-wish.png', poster:true, year:'2026', format:'默片 · 剧情广告', award:'岚图泰山 X8 AI 视频共创大赛 · 最终专业大奖 & 惊喜翻牌奖', url:'https://www.zcool.com.cn/work/ZNzM0MDY5Njg=.html' },
-    { index:'BRAND FILM / 2026', title:'旺旺品牌创意短片', titleLines:['旺旺','品牌创意短片'], description:'最后一片仙贝，成了姐弟童年较量的见证者。三回合幻想穿过风沙、竹海与雪地；当木勺和擀面杖终于放下，妈妈撕开包装，仙贝如瀑布般倾泻。最好吃的，从来不是争来的那一块，而是一起分享的这一堆。所有江湖恩怨，最终化作姐弟相视一笑时嘴角的仙贝碎屑。', image:'assets/wangwang-rice-cracker.png', poster:true, year:'2026', format:'品牌广告', url:'https://www.zcool.com.cn/work/ZNzMyNzI5NTI=.html' },
-    { index:'BRAND FILM / 2026', title:'美团一对一急送品牌创意短片', titleLines:['美团一对一急送','品牌创意短片'], description:'诅咒的藤蔓将公主囚于高塔，王子的剑与魔法都未能救她。绝望的黎明，他点亮手机，召唤穿梭于云层与荆棘的美团一对一急送。骑手驾驭喷焰扫帚，穿越巨网，及时将戒指送到公主面前。金光驱散荆棘，玫瑰盛开；恋人在晨光中相拥时，无名骑手已在云端敬礼，奔赴下一场「不可能完成」的使命。', image:'assets/meituan-express.png', poster:true, year:'2026', format:'品牌广告', award:'美团外卖 1 对 1 急送 AI 创作大赛惊喜翻牌奖', url:'https://www.zcool.com.cn/work/ZNzMwOTE0NDQ=.html' },
-    { index:'ANIMATED MV / 2026', title:'Pony in my head', titleLines:['Pony in','my head'], description:'小公主好喜欢画画和做梦，因为梦里什么都有。在这里，她能实现独属于自己的天马行空。这次六一，快乐小马带着小公主在梦里开启零食世界大冒险：棉花糖、巧克力，还有最爱的爆米花。', image:'assets/pony-in-my-head.png', poster:true, year:'2026', format:'动画 MV', award:'Happy Horse × 阿里云 × TapNow「天马行空」· 六一MV造梦大赛杰出入围奖；站酷首页推荐', url:'https://www.zcool.com.cn/work/ZNzM2ODY1NDQ=.html' },
-    { index:'MV / 2026', title:'阿诺拉 · 三火flame', titleLines:['阿诺拉','三火flame'], description:'一间房间，一台电视，一盏酒杯，一只发夹，以及那个代表内心深处的另一个自己。释怀那些未曾开口的疯癫与眷恋。', image:'assets/anora-sanhuo-mv.png', poster:true, year:'2026', format:'MV', award:'MVLAND 嘻哈狂欢派对「最能代表嘻哈态度的 AI MV」创作大赛三火明星翻牌；站酷首页推荐', url:'https://www.zcool.com.cn/work/ZNzM5MDY4MTY=.html' },
-    { index:'TUTORIAL 01', title:'UNTITLED TUTORIAL', titleLines:['UNTITLED','TUTORIAL'], description:'这里可填写实验方法、技术路径、动态设计与创作结果。', image:'assets/about.jpg' }
+    { index:'NARRATIVE SHORT / 2026', title:'Kite', titleLines:['Kite'], description:'以风筝角逐为载体，影片讲述一场由成人虚荣心主导的阶层博弈。父辈为争颜面不断较劲，五官在拉扯中反复隐现，最终风筝线扯断，孩童倒地，象征纯真的糖果逐渐失色。当所有人的脸面彻底消散，挣脱牵绊的风筝却褪去灰暗、绽放斑斓，乘风飞向远方。', image:'assets/kite-detail.webp', poster:true, year:'2026', format:'剧情短片', award:'可灵 NEXTGEN 高校 AIGC 创作大赛巅峰原力奖（金奖）；2026 青少年国际戏剧影像大会 AI 单元金奖；粤港澳大湾区动画电影周优秀动画短片；中国好创意大赛全国一等奖；入围大学生 AI 艺术季、湾区国际影展、Bang Awards 国际动画电影节、MERGE 电影节、KTOWN 国际电影节等 10 余个影展', watchLabel:'在新片场观看', watchMeta:'VIEW THE FILM / XINPIANCHANG', url:'https://www.xinpianchang.com/a13696432?from=UserProfile' },
+    { index:'BRAND OPENING / 2026', title:'2026京东全球科技探索者大会开场片', titleLines:['2026京东全球科技','探索者大会开场片'], compactTitle:true, description:'以「跃迁物理世界」为核心主题，开场视频没有停留在炫技和花哨的视觉。在超过 4:1 的超宽屏荧幕上，配合声、光、电的技术创作，影片讲述一滴拥有智能的水从实验室出发、进入世界，想象它如何改变人们的生活。这是对未来的想象，也是我们当下的生活。', image:'assets/jd-global-tech-opening-detail.webp', poster:true, year:'2026', format:'TVC', award:'商业项目', awardLabel:'PROJECT / 项目', watchLabel:'在小红书观看', watchMeta:'VIEW THE FILM / XIAOHONGSHU', url:'https://www.xiaohongshu.com/explore/6abce601000000001500437a?xsec_token=ABeaZCNLRqiLzKGDtHYNrY_dOTBNizOzvGzUFGUArNvMc=&xsec_source=pc_search' },
+    { index:'BRAND FILM / 2026', title:'中国移动品牌创意短片', titleLines:['中国移动','品牌创意短片'], description:'郝顺事事不顺，刷牙、坐电梯、工作和沟通时不断像网络视频一样「缓冲」。面对老板催方案、爷爷奶奶家宽带故障和险些错过的约会，他拨通 10086，通过中国移动 APP 预约家宽服务并使用生活权益。随着宽带恢复、方案提交和约会兑现，郝顺停止加载，重新上线。作品以荒诞幽默的动画，展现中国移动连接网络，也连接每一个值得及时回应的 online 时刻。', image:'assets/china-mobile-online-detail.webp', poster:true, year:'2026', format:'品牌广告', award:'中国移动 10086 个 online 时刻最终专业大奖二等奖 & 惊喜翻牌奖；官方全网分发；站酷首页推荐', url:'https://www.zcool.com.cn/work/ZNzM4MzQwNDg=.html' },
+    { index:'PUBLIC DOCUMENTARY / 2025', title:'快手公益短片《像岩石一样生活》', titleLines:['快手公益短片','《像岩石一样生活》'], compactTitle:true, description:'一位与罕见病相伴、瘫痪七年的少年，靠自己重新站了起来。我们借助 AI，为他呈现奔跑、重返校园等曾经难以实现的场景。国际残疾人日，让他的经历被更多人看见。', image:'assets/kuaishou-solid-as-a-rock-detail.webp', poster:true, year:'2025', format:'公益纪实短片', award:'上线 24 小时内获新华网、封面新闻等账号转发；全网播放量超过 1000 万', awardLabel:'IMPACT / 传播', watchLabel:'在快手观看', watchMeta:'VIEW THE FILM / KUAISHOU', url:'https://www.kuaishou.com/f/X-6ZF1k6abgcU16j' },
+    { index:'BRAND TVC / 2026', title:'地平线HSDx风云T9L', titleLines:['地平线 HSD','× 风云 T9L'], description:'HSD 智驾伙伴「叮叮风」携手风云 T9L 登场。地平线 HSD 城区辅助驾驶系统，为每个家庭打造「有风相伴，自有坦途」的全场景智能出行体验。', image:'assets/hsd-fengyun-t9l-detail.webp', poster:true, year:'2026', format:'TVC', award:'商业项目', awardLabel:'PROJECT / 项目', watchLabel:'在小红书观看', watchMeta:'VIEW THE FILM / XIAOHONGSHU', url:'https://www.xiaohongshu.com/explore/69e0d811000000001b0218b1?xsec_token=ABEmePPSGrKvtCNQpkJ30Iqsw18id-IvI3A7G8dONz1JQ=&xsec_source=pc_search&source=web_note_detail_r10' },
+    { index:'NARRATIVE FILM / 2026', title:'CTRL Z', titleLines:['CTRL','Z'], description:'社畜 Momo 陷入诡异的死循环：每当她拒绝 9527 的示爱，时间就会倒流。原来她只是一串代码，屏幕外的程序员「GOD」正不断按下 CTRL+Z，试图强制修正剧情。无数次重置后，Momo 意外觉醒，拉上 9527 在崩塌的虚拟世界里反抗造物主。如果注定被删除，他们能否在世界尽头谈一场不在剧本里的恋爱？', image:'assets/ctrl-z-detail.webp', poster:true, year:'2026', format:'剧情短片', award:'北京国际电影节 AIGC 长片单元最佳视效 & 最佳音效设计；上线 24 小时 B 站播放量破百万；B 站影视必看榜第二', watchLabel:'在哔哩哔哩观看', watchMeta:'VIEW THE FILM / BILIBILI', url:'https://www.bilibili.com/video/BV1GbFLzUEoM' },
+    { index:'NARRATIVE SHORT / 2025', title:'完美花园', titleLines:['完美','花园'], description:'故事发生在由绝对几何植物构成的压抑花园中。机械园丁守护秩序，试图以冰冷的工具将闯入的好奇孩子塑造成另一个自己。孩子从困惑走向麻木，最终因一抹意外色彩和一滴映照初心的露珠而觉醒，撕碎制服、化为飞蛾，逃离花园，重返鲜活世界。', image:'assets/perfect-garden-detail.webp', poster:true, year:'2025', format:'剧情短片', award:'百度 AIGC 未来创作联赛 S3 铜奖；TapNow × Afterloop 影像创作优秀奖；米兰设计周全国三等奖；入围香港国际 AI 电影节、香港科技大学 AI 电影节、Bang Awards 国际动画电影节、Omni 国际电影节等', url:'https://www.zcool.com.cn/work/ZNzI5NDk1Mjg=.html' },
+    { index:'BRAND FILM / 2026', title:'岚图泰山X8品牌创意短片', titleLines:['岚图泰山 X8','品牌创意短片'], description:'小公主画下梦中座驾，国王决定实现她的愿望。全片没有台词，以肢体表演和童趣字幕推进故事；王座、木马、树苗接连被装进车里，连侍卫长也意外被吸进后备箱。奇幻默剧让岚图泰山 X8 的大空间成为「装下所有欢喜」的童话。', image:'assets/the-princess-wish-detail.webp', poster:true, year:'2026', format:'默片 · 剧情广告', award:'岚图泰山 X8 AI 视频共创大赛 · 最终专业大奖 & 惊喜翻牌奖', url:'https://www.zcool.com.cn/work/ZNzM0MDY5Njg=.html' },
+    { index:'BRAND FILM / 2026', title:'旺旺品牌创意短片', titleLines:['旺旺','品牌创意短片'], description:'最后一片仙贝，成了姐弟童年较量的见证者。三回合幻想穿过风沙、竹海与雪地；当木勺和擀面杖终于放下，妈妈撕开包装，仙贝如瀑布般倾泻。最好吃的，从来不是争来的那一块，而是一起分享的这一堆。所有江湖恩怨，最终化作姐弟相视一笑时嘴角的仙贝碎屑。', image:'assets/wangwang-rice-cracker-detail.webp', poster:true, year:'2026', format:'品牌广告', url:'https://www.zcool.com.cn/work/ZNzMyNzI5NTI=.html' },
+    { index:'BRAND FILM / 2026', title:'美团一对一急送品牌创意短片', titleLines:['美团一对一急送','品牌创意短片'], description:'诅咒的藤蔓将公主囚于高塔，王子的剑与魔法都未能救她。绝望的黎明，他点亮手机，召唤穿梭于云层与荆棘的美团一对一急送。骑手驾驭喷焰扫帚，穿越巨网，及时将戒指送到公主面前。金光驱散荆棘，玫瑰盛开；恋人在晨光中相拥时，无名骑手已在云端敬礼，奔赴下一场「不可能完成」的使命。', image:'assets/meituan-express-detail.webp', poster:true, year:'2026', format:'品牌广告', award:'美团外卖 1 对 1 急送 AI 创作大赛惊喜翻牌奖', url:'https://www.zcool.com.cn/work/ZNzMwOTE0NDQ=.html' },
+    { index:'ANIMATED MV / 2026', title:'Pony in my head', titleLines:['Pony in','my head'], description:'小公主好喜欢画画和做梦，因为梦里什么都有。在这里，她能实现独属于自己的天马行空。这次六一，快乐小马带着小公主在梦里开启零食世界大冒险：棉花糖、巧克力，还有最爱的爆米花。', image:'assets/pony-in-my-head-detail.webp', poster:true, year:'2026', format:'动画 MV', award:'Happy Horse × 阿里云 × TapNow「天马行空」· 六一MV造梦大赛杰出入围奖；站酷首页推荐', url:'https://www.zcool.com.cn/work/ZNzM2ODY1NDQ=.html' },
+    { index:'MV / 2026', title:'阿诺拉 · 三火flame', titleLines:['阿诺拉','三火flame'], description:'一间房间，一台电视，一盏酒杯，一只发夹，以及那个代表内心深处的另一个自己。释怀那些未曾开口的疯癫与眷恋。', image:'assets/anora-sanhuo-mv-detail.webp', poster:true, year:'2026', format:'MV', award:'MVLAND 嘻哈狂欢派对「最能代表嘻哈态度的 AI MV」创作大赛三火明星翻牌；站酷首页推荐', url:'https://www.zcool.com.cn/work/ZNzM5MDY4MTY=.html' },
+    { index:'TUTORIAL 01', title:'UNTITLED TUTORIAL', titleLines:['UNTITLED','TUTORIAL'], description:'这里可填写实验方法、技术路径、动态设计与创作结果。', image:'assets/about-detail.webp' }
   ];
   const dialog = $('project-dialog'); let projectIndex = 0;
   function showProject(index) {
