@@ -13,8 +13,8 @@
   const $ = id => document.getElementById(id);
   const intro = $('opening'), gaze = $('gaze'), about = $('about-video'), canvas = $('gaze-canvas'), sequence = $('cover');
   const mobileMedia = matchMedia('(hover: none) and (pointer: coarse)').matches;
-  const stage = $('stage'), playbackRetry = $('mobile-play');
-  function setScene(scene) { stage.dataset.scene = scene; sequence.dataset.scene = scene; playbackRetry.hidden = true; }
+  const stage = $('stage');
+  function setScene(scene) { stage.dataset.scene = scene; sequence.dataset.scene = scene; }
   const ctx = canvas.getContext('2d');
   const gazePoster = document.querySelector('.cover-poster');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -71,31 +71,68 @@
   sequence.addEventListener('pointerleave', () => aim(0, -.65));
   sequence.addEventListener('pointerdown', event => { if (event.pointerType === 'touch') aim((event.clientX / innerWidth - .5) * 2, (event.clientY / innerHeight - .5) * 2); });
 
+  const mobileAnimation = $('mobile-animation');
+  const mobileDurations = {"opening": 4.064, "about": 8.064};
+  const mobileFilms = new Map();
+  let mobileOpeningReady = false, mobileRun = 0, mobileAnimationURL = null, mobileClock = 0;
+  function preloadMobileFilm(kind) {
+    if (!mobileFilms.has(kind)) {
+      const promise = fetch('assets/' + kind + '-mobile.webp', {cache:'force-cache'})
+        .then(response => { if (!response.ok) throw new Error('Animation download failed'); return response.blob(); });
+      mobileFilms.set(kind, promise);
+      promise.catch(() => mobileFilms.delete(kind));
+    }
+    return mobileFilms.get(kind);
+  }
+  function stopMobileFilm() {
+    mobileRun++;
+    cancelAnimationFrame(mobileClock); mobileClock = 0;
+    mobileAnimation.onload = null;
+    mobileAnimation.removeAttribute('src');
+    delete mobileAnimation.dataset.playing;
+    if (mobileAnimationURL) { URL.revokeObjectURL(mobileAnimationURL); mobileAnimationURL = null; }
+  }
+  function playMobileFilm(kind) {
+    stopMobileFilm();
+    const run = mobileRun;
+    // A still remains visible while the cached animation bytes are being prepared.
+    mobileAnimation.src = kind === 'opening' ? intro.poster : about.poster;
+    preloadMobileFilm(kind).then(blob => {
+      if (run !== mobileRun || stage.dataset.scene !== (kind === 'opening' ? 'opening' : 'about')) return;
+      mobileAnimationURL = URL.createObjectURL(blob);
+      mobileAnimation.onload = () => {
+        if (run !== mobileRun) return;
+        mobileAnimation.onload = null;
+        mobileAnimation.dataset.playing = kind;
+        const started = performance.now(), duration = mobileDurations[kind] * 1000;
+        let lastUI = -100;
+        function tick(now) {
+          if (run !== mobileRun) return;
+          const elapsed = now - started, progress = Math.min(1, elapsed / duration);
+          if (kind === 'about' && elapsed - lastUI > 80) {
+            lastUI = elapsed;
+            $('sequence-progress').style.width = (progress * 100) + '%';
+            document.documentElement.style.setProperty('--about-fade', String(Math.max(0, Math.min(1, (progress - .68) / .2))));
+          }
+          if (elapsed >= duration) {
+            if (kind === 'opening') finishIntro();
+            else { setAboutEndState(); updateSequence(); }
+          } else { mobileClock = requestAnimationFrame(tick); }
+        }
+        mobileClock = requestAnimationFrame(tick);
+      };
+      mobileAnimation.src = mobileAnimationURL;
+    }).catch(() => {
+      if (run !== mobileRun) return;
+      if (kind === 'opening') finishIntro(); else setAboutEndState();
+    });
+  }
+
   let introPlaybackToken = 0, introPreparation = null, aboutPreparation = null;
   function playFilm(video) {
     video.muted = true; video.defaultMuted = true; video.playsInline = true;
-    const startTime = video.currentTime;
-    const attempt = video.play();
-    if (mobileMedia) setTimeout(() => {
-      const active = stage.dataset.scene === (video === intro ? 'opening' : 'about');
-      if (active && !document.hidden && !video.ended && video.readyState >= 2 && video.currentTime < startTime + .05) {
-        playbackRetry.dataset.video = video.id; playbackRetry.hidden = false;
-      }
-    }, 1800);
-    return Promise.resolve(attempt).catch(error => {
-      const visible = stage.dataset.scene === (video === intro ? 'opening' : 'about');
-      if (visible) {
-        playbackRetry.dataset.video = video.id;
-        playbackRetry.hidden = false;
-        if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') notice();
-      }
-    });
+    return Promise.resolve(video.play());
   }
-  playbackRetry.addEventListener('click', () => {
-    const video = $(playbackRetry.dataset.video);
-    if (video) { playbackRetry.hidden = true; if (mobileMedia && video.readyState >= 2 && !video.paused) { video.pause(); video.load(); } playFilm(video); }
-  });
-  [intro, about].forEach(video => video.addEventListener('playing', () => { playbackRetry.hidden = true; }));
   async function bufferFilm(video) {
     const connection = navigator.connection;
     // Unknown or slower networks use the fully buffered lightweight film.
@@ -113,14 +150,7 @@
     } else { useBalanced = false; }
     const source = useBalanced && video.dataset.srcBalanced ? video.dataset.srcBalanced : video.dataset.src;
     video.muted = true; video.defaultMuted = true; video.playsInline = true;
-    if (mobileMedia) {
-      // iOS/WeChat use native HTTPS MP4, with byte-range loading and inline decoding.
-      if (video === about) return;
-      video.src = video.dataset.src;
-      video.preload = 'auto';
-      video.load();
-      return;
-    }
+    if (mobileMedia) return;
     const response = await fetch(source, {cache:'force-cache'});
     if (!response.ok) throw new Error('Film download failed');
     const blob = await response.blob();
@@ -139,14 +169,19 @@
     return introPreparation;
   }
   function finishIntro() {
+    if (mobileMedia) stopMobileFilm();
     introPlaybackToken++;
     opening = false; intro.pause(); intro.classList.add('finished'); document.body.classList.remove('is-opening');
     if (introState === 'cover') setScene('cover');
     captureGazeFrame(); drawEyes(); updateSequence();
-    prepareIntroVideo().then(prepareScrubVideo).catch(() => {});
+    if (!mobileMedia) prepareIntroVideo().then(prepareScrubVideo).catch(() => {});
   }
   async function playIntro() {
     if (!entered) return;
+    if (mobileMedia) {
+      forcePageTop(); opening = true; intro.classList.remove('finished');
+      document.body.classList.add('is-opening'); setScene('opening'); playMobileFilm('opening'); return;
+    }
     const token = ++introPlaybackToken;
     forcePageTop(); opening = true;
     try {
@@ -168,7 +203,11 @@
     return aboutPreparation;
   }
   // Download in sequence: opening first, then the short introduction in the background.
-  prepareIntroVideo().then(() => setTimeout(prepareScrubVideo, 800)).catch(notice);
+  if (mobileMedia) {
+    preloadMobileFilm('opening').then(() => {
+      mobileOpeningReady = true; return preloadMobileFilm('about');
+    }).catch(() => {});
+  } else prepareIntroVideo().then(() => setTimeout(prepareScrubVideo, 800)).catch(notice);
 
   function enter() {
     if (entered) return;
@@ -197,7 +236,7 @@
   const loadTimer = setInterval(() => {
     if (entered) return clearInterval(loadTimer);
     const elapsed = performance.now() - loadStarted;
-    const mediaReady = (intro.readyState >= 3 ? 60 : 0) + (ready ? 40 : 0);
+    const mediaReady = ((mobileMedia ? mobileOpeningReady : intro.readyState >= 3) ? 60 : 0) + (ready ? 40 : 0);
     const pacedProgress = Math.min(100, Math.floor(elapsed / (reduced ? 9 : 30)));
     loadProgress = Math.max(loadProgress, Math.min(mediaReady, pacedProgress)); $('load-count').textContent = String(loadProgress).padStart(2, '0'); $('load-bar').style.width = loadProgress + '%';
     $('loader').style.setProperty('--load-ratio', String(loadProgress / 100));
@@ -214,12 +253,22 @@
     document.documentElement.style.setProperty('--about-fade', String(info));
   }
   function setAboutEndState() {
+    if (mobileMedia) stopMobileFilm();
     introState = 'about'; transitionPending = false; about.pause(); setScene('about-end');
     setVisualState(0, 1, 1); $('sequence-progress').style.width = '100%';
   }
   async function startAboutTransition() {
     if (!landingReady) return;
     if (introState === 'playing' || introState === 'about') return;
+    if (mobileMedia) {
+      stopMobileFilm(); opening = false; introPlaybackToken++;
+      intro.classList.add('finished'); document.body.classList.remove('is-opening');
+      $('stage').classList.remove('about-quick-finish');
+      introState = 'playing'; transitionPending = false;
+      setScene('about'); setVisualState(0, 1, 0); $('sequence-progress').style.width = '0%';
+      scrollTo({top:sequence.offsetTop + sequence.offsetHeight - innerHeight, behavior:'auto'});
+      playMobileFilm('about'); return;
+    }
     if (!scrubReady) {
       introState = 'waiting'; transitionPending = true; finishIntro(); setScene('about');
       setVisualState(0, 1, 0);
@@ -237,6 +286,7 @@
     try { await playFilm(about); } catch { if (introState === 'playing') setAboutEndState(); }
   }
   function resetToCover() {
+    if (mobileMedia) stopMobileFilm();
     $('stage').classList.remove('about-quick-finish');
     introState = 'cover'; setScene('cover'); about.pause(); if (mobileMedia) { about.removeAttribute('src'); about.load(); } if (about.readyState > 0 && about.currentTime > .01) about.currentTime = 0; setVisualState(1, 0, 0); $('sequence-progress').style.width = '0%';
   }
@@ -272,14 +322,14 @@
   function scrollToPage(top) {
     pageWheelLocked = true; animatePageLine();
     scrollTo({ top, behavior:(reduced || mobileMedia) ? 'auto' : 'smooth' });
-    setTimeout(() => { pageWheelLocked = false; }, reduced ? 100 : 900);
+    setTimeout(() => { pageWheelLocked = false; }, (reduced || mobileMedia) ? 150 : 900);
   }
   function finishAboutPlayback() {
     if (introState !== 'playing' && introState !== 'waiting') return;
     $('stage').classList.add('about-quick-finish');
     setAboutEndState();
     pageWheelLocked = true;
-    setTimeout(() => { pageWheelLocked = false; }, 650);
+    setTimeout(() => { pageWheelLocked = false; }, mobileMedia ? 150 : 650);
   }
   function advanceAboutToHonors() {
     if (pageWheelLocked) return;
@@ -417,7 +467,7 @@
   const revealObserver = new IntersectionObserver(entries => entries.forEach(entry => entry.target.classList.toggle('is-active', entry.isIntersecting)), { threshold:.35 });
   snapPages.forEach(page => revealObserver.observe(page));
   ['honors','works','contact'].forEach(id => new IntersectionObserver(entries => { if (entries[0].isIntersecting) activate(id); }, { threshold:.28 }).observe($(id)));
-  document.addEventListener('visibilitychange', () => { if (document.hidden) intro.pause(); else if (opening) playFilm(intro); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) intro.pause(); else if (opening && !mobileMedia) playFilm(intro); });
   if (location.hash && location.hash !== '#cover') enter();
   if (location.hash === '#about') setTimeout(() => {
     setAboutEndState(); document.documentElement.style.scrollBehavior = 'auto';

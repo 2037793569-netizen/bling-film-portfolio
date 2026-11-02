@@ -288,3 +288,13 @@ body{font-family:var(--body);letter-spacing:-.01em}
   html{scroll-behavior:auto!important}
   body{overflow-x:clip}
 }
+
+.mobile-animation{display:none!important}
+@media(hover:none) and (pointer:coarse){
+  .stage>video{display:none!important}
+  .stage[data-scene="opening"]>#mobile-animation,.stage[data-scene="about"]>#mobile-animation{
+    display:block!important;visibility:visible;opacity:1;z-index:4
+  }
+  .mobile-play{display:none!important}
+  .site-header{backdrop-filter:none;-webkit-backdrop-filter:none}
+}

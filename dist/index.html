@@ -7,7 +7,7 @@
   <meta name="description" content="Bling's AI film portfolio — stories, characters and visual experiments.">
   <title>Bling — AI Film Portfolio</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b5cff'/%3E%3Ccircle cx='11' cy='16' r='4' fill='white'/%3E%3Ccircle cx='21' cy='16' r='4' fill='white'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=20261102-mobile6">
+  <link rel="stylesheet" href="style.css?v=20261102-swipe7">
   <link rel="stylesheet" href="recognition.css">
 </head>
 <body class="is-loading">
@@ -43,13 +43,13 @@
     <section class="intro-sequence" id="cover" data-scene="cover" aria-label="Opening film and interactive introduction">
       <div class="intro-sticky">
         <div class="stage" id="stage" data-scene="cover">
+          <img id="mobile-animation" class="mobile-animation" alt="" aria-hidden="true">
           <img class="cover-poster" src="assets/gaze.jpg" alt="Animated character holding the word PORTFOLIO" fetchpriority="high">
           <canvas id="gaze-canvas" width="2560" height="1440" aria-label="The character's eyes follow the pointer"></canvas>
           <video id="about-video" class="about-video" muted playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5-page" x5-video-player-fullscreen="false" preload="none" data-src="assets/about-stream.mp4" data-src-balanced="assets/about-balanced.mp4" poster="assets/about.jpg" aria-label="Bling introduction film"></video>
           <img class="about-end-frame" src="assets/about.jpg" alt="" aria-hidden="true">
           <video id="opening" class="opening" muted playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5-page" x5-video-player-fullscreen="false" preload="none" data-src="assets/opening-stream.mp4" data-src-balanced="assets/opening-balanced.mp4" poster="assets/opening.jpg" aria-label="Opening animation"></video>
-          <video id="gaze" class="gaze-source" muted playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5-page" x5-video-player-fullscreen="false" preload="none" aria-hidden="true"><source src="assets/gaze.mp4" type="video/mp4"></video>
-          <button id="mobile-play" class="mobile-play" type="button" hidden aria-label="播放动画">轻触播放 <span aria-hidden="true">▷</span></button>
+          <video id="gaze" class="gaze-source" muted playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5-page" x5-video-player-fullscreen="false" preload="none" aria-hidden="true"></video>
         </div>
 
         <div class="cover-chrome" id="cover-chrome">
@@ -138,7 +138,7 @@
   </dialog>
   <div id="media-notice" class="notice" role="status" hidden>影像暂时无法播放，已为你保留静帧。</div>
   <noscript><style>.loader{display:none!important}.is-loading{overflow:auto!important}.opening{display:none}.intro-sequence{height:100vh!important}.about-video{display:none}</style></noscript>
-  <script src="app.js?v=20261102-mobile6"></script>
+  <script src="app.js?v=20261102-swipe7"></script>
   <script src="recognition.js?v=20261102-awards5"></script>
 </body>
 </html>
