@@ -7,6 +7,9 @@ html_path = root / "index.html"
 app_path = root / "app.js"
 html = html_path.read_text(encoding="utf-8")
 app = app_path.read_text(encoding="utf-8")
+if 'loading="lazy"' in html and re.search(r'assets/[^"]+-640\.webp', html):
+    print("Responsive covers already optimized; retaining current assets.")
+    raise SystemExit(0)
 sources = re.findall(r'<span class="work-media"><img src="([^"]+)"', html)
 assert len(sources) == 13, "Expected 13 project covers"
 mapping = {}
