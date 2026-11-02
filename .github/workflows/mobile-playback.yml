@@ -27,7 +27,7 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Verify mobile and desktop interactions
         run: |
-          python -m http.server 8765 --directory dist >/tmp/portfolio-http.log 2>&1 &
+          node tools/serve-media.cjs >/tmp/portfolio-http.log 2>&1 &
           node tools/test-mobile-playback.cjs
           python - <<'PY'
           from pathlib import Path
