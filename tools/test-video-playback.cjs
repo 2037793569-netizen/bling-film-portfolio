@@ -1,12 +1,12 @@
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 (async () => {
- const browser = await chromium.launch({headless:true});
+ const browser = await chromium.launch({headless:true, executablePath:'/usr/bin/google-chrome', args:['--no-sandbox']});
  const page = await browser.newPage({viewport:{width:1440,height:900}});
- const errors=[]; page.on('pageerror',e=>errors.push(String(e)));
+ const errors=[]; page.on('pageerror',e=>{errors.push(String(e));console.error('PAGE ERROR',String(e));}); page.on('console',m=>{if(m.type()==='error') console.error('BROWSER',m.text());});
  await page.goto('http://127.0.0.1:8765', {waitUntil:'domcontentloaded'});
  await page.locator('#enter-now').click();
- await page.waitForFunction(()=>document.querySelector('#opening').currentTime>.5);
+ try { await page.waitForFunction(()=>document.querySelector('#opening').currentTime>.5); } catch(e) { console.log(await page.evaluate(()=>({body:document.body.className,loaderHidden:document.querySelector('#loader').hidden,videos:[...document.querySelectorAll('video')].map(v=>({id:v.id,src:v.currentSrc,ready:v.readyState,paused:v.paused,time:v.currentTime,error:v.error?.message,codec:v.canPlayType('video/mp4; codecs=\"avc1.4D401F\"')}))}))); throw e; }
  const opening=await page.locator('#opening').evaluate(v=>({time:v.currentTime,src:v.currentSrc,paused:v.paused}));
  assert(opening.src.startsWith('blob:') && !opening.paused);
  await page.waitForTimeout(1000);
