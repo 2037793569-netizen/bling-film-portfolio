@@ -13,10 +13,9 @@
   const $ = id => document.getElementById(id);
   const intro = $('opening'), gaze = $('gaze'), about = $('about-video'), canvas = $('gaze-canvas'), sequence = $('cover');
   const ctx = canvas.getContext('2d');
-  ctx.setTransform(.5, 0, 0, .5, 0, 0);
   const gazePoster = document.querySelector('.cover-poster');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const base = document.createElement('canvas'); base.width = 1280; base.height = 720;
+  const base = document.createElement('canvas'); base.width = 2560; base.height = 1440;
   const bc = base.getContext('2d');
   const eyeSprite = new Image(); eyeSprite.src = 'assets/eye-frames.webp';
   const eyeCrop = { x:1000, y:910, w:460, h:130, cols:4 };
@@ -29,12 +28,14 @@
   function notice() { $('media-notice').hidden = false; setTimeout(() => $('media-notice').hidden = true, 5000); }
   function captureGazeFrame() {
     if (ready || !gazePoster.complete || !gazePoster.naturalWidth || !eyeSprite.complete || !eyeSprite.naturalWidth) return;
-    bc.drawImage(gazePoster, 0, 0, 1280, 720);
+    bc.drawImage(gazePoster, 0, 0, 2560, 1440);
+    ctx.drawImage(base, 0, 0);
     ready = true; drawEyes();
   }
   function drawEyes() {
     if (!ready || opening) return;
-    ctx.clearRect(0, 0, 2560, 1440); ctx.drawImage(base, 0, 0, 2560, 1440);
+    ctx.clearRect(eyeCrop.x, eyeCrop.y, eyeCrop.w, eyeCrop.h);
+    ctx.drawImage(base, eyeCrop.x, eyeCrop.y, eyeCrop.w, eyeCrop.h, eyeCrop.x, eyeCrop.y, eyeCrop.w, eyeCrop.h);
     const wantedX = 1227.75 + current.x * 65.75;
     const wantedY = 981 + current.y * 26;
     let frameIndex = 0, best = Infinity;
@@ -66,7 +67,9 @@
 
   let introPlaybackToken = 0, introPreparation = null, aboutPreparation = null;
   async function bufferFilm(video) {
-    const response = await fetch(video.dataset.src, {cache:'force-cache'});
+    const useHD = innerWidth >= 1100 || innerWidth * (devicePixelRatio || 1) > 1600;
+    const source = useHD && video.dataset.srcHd ? video.dataset.srcHd : video.dataset.src;
+    const response = await fetch(source, {cache:'force-cache'});
     if (!response.ok) throw new Error('Film download failed');
     const blob = await response.blob();
     video.src = URL.createObjectURL(blob);
