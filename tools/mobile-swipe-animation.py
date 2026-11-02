@@ -9,6 +9,7 @@ for name in ['opening','about']:
     subprocess.run(['ffmpeg','-y','-i',str(src),'-vf','fps=24,scale=960:-2','-c:v','libwebp_anim','-lossless','0','-q:v','78','-compression_level','5','-loop','1','-an',str(target)],check=True)
     probe=json.loads(subprocess.check_output(['ffprobe','-v','quiet','-show_format','-of','json',str(src)]))
     report[name]={'bytes':target.stat().st_size,'duration':float(probe['format']['duration']),'width':960,'fps':24}
+html=html.replace('<source src="assets/gaze.mp4" type="video/mp4">','')
 html=re.sub(r'\s*<button id="mobile-play".*?</button>','',html)
 html=html.replace('<div class="stage" id="stage" data-scene="cover">','<div class="stage" id="stage" data-scene="cover">\n          <img id="mobile-animation" class="mobile-animation" alt="" aria-hidden="true">')
 html=re.sub(r'src="app\.js[^"]*"','src="app.js?v=20261102-swipe7"',html)
