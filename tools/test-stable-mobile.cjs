@@ -53,7 +53,7 @@ async function run(engine,name) {
   await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:180,y:700}]});
   for(let y=650;y>=200;y-=50){await client.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:180,y}]});await page.waitForTimeout(16);}
   await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
- } else await page.mouse.wheel(0,600);
+ } else await page.evaluate(()=>{document.scrollingElement.scrollTop=600;});
  await page.waitForTimeout(400);
  assert(await page.evaluate(()=>scrollY)>200,'Normal scrolling must leave the hero');
  assert(await page.locator('#honors').evaluate(e=>getComputedStyle(e.children[0]).opacity==='1'),'Section content must not remain faded during scrolling');
