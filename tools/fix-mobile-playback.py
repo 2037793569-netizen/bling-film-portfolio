@@ -123,5 +123,6 @@ css+="""
 """
 assert "ctx.setTransform(.5" not in app
 assert 'passive:false' in app and 'video.src = video.dataset.src' in app
+app=app.replace("intro.currentTime = 0;", "if (intro.readyState > 0) intro.currentTime = 0;").replace("about.currentTime = 0;", "if (about.readyState > 0) about.currentTime = 0;")
 ap.write_text(app);hp.write_text(html);cp.write_text(css)
 print('Mobile native video, exclusive scenes, gesture arbitration, and 16:9 media frame applied.')
