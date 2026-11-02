@@ -1,0 +1,41 @@
+name: Check live media performance
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/check-media.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: python -m pip install Pillow==11.3.0
+      - name: Verify live responsive images
+        run: |
+          python - <<'PY'
+          import urllib.request, re, io, time
+          from concurrent.futures import ThreadPoolExecutor
+          from PIL import Image
+          base = 'https://2037793569-netizen.github.io/bling-film-portfolio/'
+          def get(path):
+              with urllib.request.urlopen(base + path + '?check=' + str(int(time.time())), timeout=45) as r:
+                  assert r.status == 200
+                  return r.read()
+          html = get('').decode('utf-8')
+          app = get('app.js').decode('utf-8')
+          assert html.count('loading="lazy"') == 13
+          assert 'fetch(about.dataset.src)' not in app
+          assert "bc.drawImage(gazePoster" in app
+          paths = set(re.findall(r'assets/[a-z0-9-]+-(?:640|1280)\.webp', html))
+          paths.update(re.findall(r'assets/[a-z0-9-]+-detail\.webp', app))
+          assert len(paths) == 39, len(paths)
+          def check(path):
+              data = get(path)
+              image = Image.open(io.BytesIO(data))
+              image.verify()
+              return len(data)
+          with ThreadPoolExecutor(max_workers=4) as pool:
+              sizes = list(pool.map(check, sorted(paths)))
+          print(f'PASS: 13 lazy covers; all {len(paths)} responsive and detail images return 200 and decode correctly. Total optimized image bytes: {sum(sizes)}')
+          PY
