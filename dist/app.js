@@ -67,8 +67,21 @@
 
   let introPlaybackToken = 0, introPreparation = null, aboutPreparation = null;
   async function bufferFilm(video) {
-    const useHD = innerWidth >= 1100 || innerWidth * (devicePixelRatio || 1) > 1600;
-    const source = useHD && video.dataset.srcHd ? video.dataset.srcHd : video.dataset.src;
+    const connection = navigator.connection;
+    // Unknown or slower networks use the fully buffered lightweight film.
+    // Only request 1080p when both the connection and decoder can handle it.
+    let useBalanced = innerWidth >= 1000 && connection && !connection.saveData &&
+      connection.effectiveType === '4g' && connection.downlink >= 5;
+    if (useBalanced && navigator.mediaCapabilities) {
+      try {
+        const support = await navigator.mediaCapabilities.decodingInfo({
+          type:'file', video:{contentType:'video/mp4; codecs="avc1.4D4028"',
+          width:1920, height:1080, bitrate:2200000, framerate:24}
+        });
+        useBalanced = support.supported && support.smooth && support.powerEfficient;
+      } catch { useBalanced = false; }
+    } else { useBalanced = false; }
+    const source = useBalanced && video.dataset.srcBalanced ? video.dataset.srcBalanced : video.dataset.src;
     const response = await fetch(source, {cache:'force-cache'});
     if (!response.ok) throw new Error('Film download failed');
     const blob = await response.blob();

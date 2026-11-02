@@ -45,9 +45,9 @@
         <div class="stage" id="stage">
           <img class="cover-poster" src="assets/gaze.jpg" alt="Animated character holding the word PORTFOLIO" fetchpriority="high">
           <canvas id="gaze-canvas" width="2560" height="1440" aria-label="The character's eyes follow the pointer"></canvas>
-          <video id="about-video" class="about-video" muted playsinline preload="none" data-src="assets/about-stream.mp4" data-src-hd="assets/about-hd.mp4" poster="assets/about.jpg" aria-label="Bling introduction film"></video>
+          <video id="about-video" class="about-video" muted playsinline preload="none" data-src="assets/about-stream.mp4" data-src-balanced="assets/about-balanced.mp4" poster="assets/about.jpg" aria-label="Bling introduction film"></video>
           <img class="about-end-frame" src="assets/about.jpg" alt="" aria-hidden="true">
-          <video id="opening" class="opening" muted playsinline preload="none" data-src="assets/opening-stream.mp4" data-src-hd="assets/opening-hd.mp4" poster="assets/opening.jpg" aria-label="Opening animation"></video>
+          <video id="opening" class="opening" muted playsinline preload="none" data-src="assets/opening-stream.mp4" data-src-balanced="assets/opening-balanced.mp4" poster="assets/opening.jpg" aria-label="Opening animation"></video>
           <video id="gaze" class="gaze-source" muted playsinline preload="none" aria-hidden="true"><source src="assets/gaze.mp4" type="video/mp4"></video>
         </div>
 
@@ -137,7 +137,7 @@
   </dialog>
   <div id="media-notice" class="notice" role="status" hidden>影像暂时无法播放，已为你保留静帧。</div>
   <noscript><style>.loader{display:none!important}.is-loading{overflow:auto!important}.opening{display:none}.intro-sequence{height:100vh!important}.about-video{display:none}</style></noscript>
-  <script src="app.js?v=20261102-sharp3"></script>
+  <script src="app.js?v=20261102-adaptive4"></script>
   <script src="recognition.js"></script>
 </body>
 </html>
