@@ -1,0 +1,48 @@
+name: Adapt animation to network speed
+on:
+  push:
+    branches: [main]
+    paths: ['tools/adapt-video-quality.py', '.github/workflows/adaptive-video.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+jobs:
+  sharpen:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          if ! command -v ffmpeg >/dev/null; then sudo apt-get update -qq && sudo apt-get install -y ffmpeg; fi
+      - run: python tools/adapt-video-quality.py
+      - run: node --check dist/app.js
+      - name: Install browser test
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Check HD decode and interactions
+        run: |
+          python -m http.server 8765 --directory dist >/tmp/portfolio-http.log 2>&1 &
+          node tools/test-adaptive-video.cjs
+      - name: Save verified sharpness changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dist tools/adaptive-video-report.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Use network-aware buffered video and retain sharp static artwork'
+            git push origin HEAD:main
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
