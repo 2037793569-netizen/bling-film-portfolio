@@ -2,7 +2,7 @@ from pathlib import Path
 p=Path('dist');ap=p/'app.js';hp=p/'index.html';cp=p/'style.css'
 app=ap.read_text();html=hp.read_text();css=cp.read_text()
 assert 'const mobileMedia' not in app,'Mobile fix already applied'
-app=app.replace("  const ctx = canvas.getContext('2d');","  const mobileMedia = matchMedia('(hover: none) and (pointer: coarse)').matches;\n  const stage = $('stage'), playbackRetry = $('mobile-play');\n  function setScene(scene) { stage.dataset.scene = scene; playbackRetry.hidden = true; }\n  const ctx = canvas.getContext('2d');")
+app=app.replace("  const ctx = canvas.getContext('2d');","  const mobileMedia = matchMedia('(hover: none) and (pointer: coarse)').matches;\n  const stage = $('stage'), playbackRetry = $('mobile-play');\n  function setScene(scene) { stage.dataset.scene = scene; sequence.dataset.scene = scene; playbackRetry.hidden = true; }\n  const ctx = canvas.getContext('2d');")
 app=app.replace("  const bc = base.getContext('2d');","  const bc = base.getContext('2d');\n  if (mobileMedia) { canvas.width = base.width = 1; canvas.height = base.height = 1; }")
 app=app.replace("const eyeSprite = new Image(); eyeSprite.src = 'assets/eye-frames.webp';","const eyeSprite = new Image(); if (!mobileMedia) eyeSprite.src = 'assets/eye-frames.webp';")
 app=app.replace("  function captureGazeFrame() {","  function captureGazeFrame() {\n    if (mobileMedia) { ready = gazePoster.complete && gazePoster.naturalWidth > 0; return; }")
@@ -94,6 +94,7 @@ app=app[:start]+"""  let touchNavigation = false, touchStartX = 0;
     else if (delta < -35 && introState === 'about') returnToCover();
   }, {passive:true});
 """ + app[end:]
+html=html.replace('id="cover" aria-label=', 'id="cover" data-scene="cover" aria-label=')
 html=html.replace('<div class="stage" id="stage">','<div class="stage" id="stage" data-scene="cover">')
 anchor='        </div>\n\n        <div class="cover-chrome"'
 assert anchor in html
@@ -110,6 +111,9 @@ css+="""
 .stage[data-scene="opening"]>#opening{visibility:visible}
 .stage[data-scene="about"]>#about-video{visibility:visible}
 .stage[data-scene="about-end"]>.about-end-frame{visibility:visible;opacity:1}
+.intro-sequence[data-scene] .cover-chrome,.intro-sequence[data-scene] .about-chrome{visibility:hidden}
+.intro-sequence[data-scene="cover"] .cover-chrome,.intro-sequence[data-scene="opening"] .cover-chrome{visibility:visible}
+.intro-sequence[data-scene="about"] .about-chrome,.intro-sequence[data-scene="about-end"] .about-chrome{visibility:visible}
 .mobile-play{position:absolute;z-index:9;left:50%;top:50%;transform:translate(-50%,-50%);padding:12px 20px;border:1px solid #ccc;border-radius:999px;background:rgba(255,255,255,.96);color:#111;font:inherit;white-space:nowrap}
 .mobile-play[hidden]{display:none}
 @media(hover:none) and (pointer:coarse){
