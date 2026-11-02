@@ -71,13 +71,25 @@
   sequence.addEventListener('pointerleave', () => aim(0, -.65));
   sequence.addEventListener('pointerdown', event => { if (event.pointerType === 'touch') aim((event.clientX / innerWidth - .5) * 2, (event.clientY / innerHeight - .5) * 2); });
 
+  // Keep the hero geometry stable when the WeChat address/tool bars expand or collapse.
+  let mobileViewportWidth = innerWidth;
+  function setMobileScreen() {
+    if (!mobileMedia) return;
+    document.documentElement.style.setProperty('--mobile-screen', Math.round(visualViewport?.height || innerHeight) + 'px');
+  }
+  setMobileScreen();
+  addEventListener('resize', () => {
+    if (mobileMedia && Math.abs(innerWidth - mobileViewportWidth) > 100) {
+      mobileViewportWidth = innerWidth; setMobileScreen();
+    }
+  }, {passive:true});
   const mobileAnimation = $('mobile-animation');
   const mobileDurations = {"opening": 4.064, "about": 8.064};
   const mobileFilms = new Map();
   let mobileOpeningReady = false, mobileRun = 0, mobileAnimationURL = null, mobileClock = 0;
   function preloadMobileFilm(kind) {
     if (!mobileFilms.has(kind)) {
-      const promise = fetch('assets/' + kind + '-mobile.webp', {cache:'force-cache'})
+      const promise = fetch(kind === 'about' ? 'assets/about-mobile-v2.webp' : 'assets/opening-mobile.webp', {cache:'force-cache', priority:kind === 'opening' ? 'high' : 'low'})
         .then(response => { if (!response.ok) throw new Error('Animation download failed'); return response.blob(); });
       mobileFilms.set(kind, promise);
       promise.catch(() => mobileFilms.delete(kind));
@@ -96,7 +108,7 @@
     stopMobileFilm();
     const run = mobileRun;
     // A still remains visible while the cached animation bytes are being prepared.
-    mobileAnimation.src = kind === 'opening' ? intro.poster : about.poster;
+    mobileAnimation.src = kind === 'opening' ? intro.poster : gazePoster.src;
     preloadMobileFilm(kind).then(blob => {
       if (run !== mobileRun || stage.dataset.scene !== (kind === 'opening' ? 'opening' : 'about')) return;
       mobileAnimationURL = URL.createObjectURL(blob);
@@ -112,7 +124,7 @@
           if (kind === 'about' && elapsed - lastUI > 80) {
             lastUI = elapsed;
             $('sequence-progress').style.width = (progress * 100) + '%';
-            document.documentElement.style.setProperty('--about-fade', String(Math.max(0, Math.min(1, (progress - .68) / .2))));
+            document.documentElement.style.setProperty('--about-fade', '1');
           }
           if (elapsed >= duration) {
             if (kind === 'opening') finishIntro();
@@ -204,9 +216,8 @@
   }
   // Download in sequence: opening first, then the short introduction in the background.
   if (mobileMedia) {
-    preloadMobileFilm('opening').then(() => {
-      mobileOpeningReady = true; return preloadMobileFilm('about');
-    }).catch(() => {});
+    preloadMobileFilm('opening').then(() => { mobileOpeningReady = true; }).catch(() => {});
+    preloadMobileFilm('about').catch(() => {});
   } else prepareIntroVideo().then(() => setTimeout(prepareScrubVideo, 800)).catch(notice);
 
   function enter() {
@@ -222,7 +233,7 @@
         forcePageTop();
         $('loader').hidden = true; document.body.classList.remove('is-loading');
         landingReady = true;
-        if (reduced) finishIntro(); else playIntro();
+        if (reduced || (mobileMedia && !mobileOpeningReady)) finishIntro(); else playIntro();
       }, reduced ? 0 : 560);
     }, reduced ? 0 : 160);
   }
@@ -237,10 +248,10 @@
     if (entered) return clearInterval(loadTimer);
     const elapsed = performance.now() - loadStarted;
     const mediaReady = ((mobileMedia ? mobileOpeningReady : intro.readyState >= 3) ? 60 : 0) + (ready ? 40 : 0);
-    const pacedProgress = Math.min(100, Math.floor(elapsed / (reduced ? 9 : 30)));
+    const pacedProgress = Math.min(100, Math.floor(elapsed / (reduced ? 9 : mobileMedia ? 12 : 30)));
     loadProgress = Math.max(loadProgress, Math.min(mediaReady, pacedProgress)); $('load-count').textContent = String(loadProgress).padStart(2, '0'); $('load-bar').style.width = loadProgress + '%';
     $('loader').style.setProperty('--load-ratio', String(loadProgress / 100));
-    if ((loadProgress === 100 && elapsed > (reduced ? 900 : 3100)) || elapsed > 7000) enter();
+    if ((loadProgress === 100 && elapsed > (reduced ? 900 : mobileMedia ? 1200 : 3100)) || elapsed > (mobileMedia ? 2200 : 7000)) enter();
   }, 150);
 
   function sequenceProgress() {
@@ -265,8 +276,7 @@
       intro.classList.add('finished'); document.body.classList.remove('is-opening');
       $('stage').classList.remove('about-quick-finish');
       introState = 'playing'; transitionPending = false;
-      setScene('about'); setVisualState(0, 1, 0); $('sequence-progress').style.width = '0%';
-      scrollTo({top:sequence.offsetTop + sequence.offsetHeight - innerHeight, behavior:'auto'});
+      setScene('about'); setVisualState(0, 1, 1); $('sequence-progress').style.width = '0%';
       playMobileFilm('about'); return;
     }
     if (!scrubReady) {
@@ -304,6 +314,13 @@
       if (scrollY !== 0) forcePageTop();
       return;
     }
+    if (mobileMedia) {
+      const atHero = scrollY <= sequence.offsetTop + 4;
+      $('site-header').classList.toggle('over-intro', atHero);
+      if (atHero) document.querySelectorAll('#main-nav a').forEach(link =>
+        link.classList.toggle('active', link.getAttribute('href') === (introState === 'cover' ? '#cover' : '#about')));
+      return;
+    }
     const p = sequenceProgress();
     if (!mobileMedia && p > .02 && introState === 'cover' && entered && !returningToCover) startAboutTransition();
     if (!mobileMedia && p < .015 && introState === 'about' && !hashBooting) resetToCover();
@@ -322,14 +339,14 @@
   function scrollToPage(top) {
     pageWheelLocked = true; animatePageLine();
     scrollTo({ top, behavior:(reduced || mobileMedia) ? 'auto' : 'smooth' });
-    setTimeout(() => { pageWheelLocked = false; }, (reduced || mobileMedia) ? 150 : 900);
+    setTimeout(() => { pageWheelLocked = false; }, (reduced || mobileMedia) ? 0 : 900);
   }
   function finishAboutPlayback() {
     if (introState !== 'playing' && introState !== 'waiting') return;
     $('stage').classList.add('about-quick-finish');
     setAboutEndState();
     pageWheelLocked = true;
-    setTimeout(() => { pageWheelLocked = false; }, mobileMedia ? 150 : 650);
+    setTimeout(() => { pageWheelLocked = false; }, mobileMedia ? 0 : 650);
   }
   function advanceAboutToHonors() {
     if (pageWheelLocked) return;
@@ -368,25 +385,41 @@
     if (event.deltaY > 6 && introState === 'about') { event.preventDefault(); advanceAboutToHonors(); return; }
     if (event.deltaY > 6 && introState === 'cover') { event.preventDefault(); startAboutTransition(); }
   }, {passive:false});
-  let touchNavigation = false, touchStartX = 0;
+  let touchNavigation = false, touchStartX = 0, touchConsumed = false;
+  function changeMobileScene(delta) {
+    if (delta > 0 && introState === 'cover') startAboutTransition();
+    else if (delta > 0 && (introState === 'playing' || introState === 'waiting')) finishAboutPlayback();
+    else if (delta < 0 && introState === 'about') returnToCover();
+  }
   sequence.addEventListener('touchstart', event => {
     const point = event.touches[0];
     const end = sequence.offsetTop + sequence.offsetHeight - innerHeight;
     touchNavigation = event.touches.length === 1 && landingReady && !pageWheelLocked &&
-      scrollY <= end + 2 && !event.target.closest('a,button,input,select,textarea,dialog');
+      (mobileMedia ? scrollY <= sequence.offsetTop + 4 : scrollY <= end + 2) &&
+      !event.target.closest('a,button,input,select,textarea,dialog');
+    touchConsumed = false;
     touchStartY = point?.clientY || 0; touchStartX = point?.clientX || 0;
   }, {passive:true});
   sequence.addEventListener('touchmove', event => {
+    if (touchConsumed) { if (event.cancelable) event.preventDefault(); return; }
     if (!touchNavigation || event.touches.length !== 1) return;
     const point = event.touches[0];
-    const dy = point.clientY - touchStartY, dx = point.clientX - touchStartX;
-    if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx) && event.cancelable) event.preventDefault();
+    const delta = touchStartY - point.clientY, dx = point.clientX - touchStartX;
+    if (Math.abs(delta) <= Math.abs(dx) || Math.abs(delta) < 8) return;
+    // Once the introduction finishes, the next upward swipe scrolls the document naturally.
+    if (mobileMedia && introState === 'about' && delta > 0) { touchNavigation = false; return; }
+    if (event.cancelable) event.preventDefault();
+    if (mobileMedia && Math.abs(delta) >= 35) {
+      touchConsumed = true; touchNavigation = false; changeMobileScene(delta);
+    }
   }, {passive:false});
-  sequence.addEventListener('touchcancel', () => { touchNavigation = false; }, {passive:true});
+  sequence.addEventListener('touchcancel', () => { touchNavigation = touchConsumed = false; }, {passive:true});
   sequence.addEventListener('touchend', event => {
+    if (touchConsumed) { touchConsumed = touchNavigation = false; return; }
     if (!touchNavigation) return;
     touchNavigation = false;
     const delta = touchStartY - (event.changedTouches[0]?.clientY || touchStartY);
+    if (mobileMedia) { if (Math.abs(delta) > 35) changeMobileScene(delta); return; }
     if (delta > 35 && introState === 'cover') startAboutTransition();
     else if (delta > 35 && (introState === 'playing' || introState === 'waiting')) finishAboutPlayback();
     else if (delta > 35 && introState === 'about') advanceAboutToHonors();
