@@ -1,0 +1,39 @@
+name: Optimize website media
+on:
+  push:
+    branches: [main]
+    paths: ['tools/optimize-media.py', '.github/workflows/optimize-media.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m pip install Pillow==11.3.0
+      - run: python tools/optimize-media.py
+      - run: node --check dist/app.js
+      - name: Save optimized images and loading changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dist tools/performance-report.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Optimize cover sizes and defer introduction video'
+            git push origin HEAD:main
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
