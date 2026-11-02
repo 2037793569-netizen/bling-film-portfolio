@@ -32,7 +32,9 @@ async function run(engine,name) {
  assert(await swipe(page,120),'Intro touchmove should suppress native momentum');
  await page.waitForTimeout(500);
  if(await page.locator('#mobile-play').isVisible())await page.locator('#mobile-play').tap();
- try { await page.waitForFunction(()=>document.querySelector('#about-video').currentTime>.3); } catch(e) { console.log('ABOUT DIAGNOSTICS '+name,await page.evaluate(()=>({scene:document.querySelector('#stage').dataset.scene,y:scrollY,retry:document.querySelector('#mobile-play').hidden,rect:document.querySelector('#about-video').getBoundingClientRect().toJSON(),videos:[...document.querySelectorAll('video')].map(v=>({id:v.id,src:v.currentSrc,time:v.currentTime,paused:v.paused,ready:v.readyState,error:v.error?.message}))})));throw e; }
+ await page.waitForFunction(()=>document.querySelector('#about-video').currentTime>.3 || !document.querySelector('#mobile-play').hidden);
+ if(await page.locator('#mobile-play').isVisible()) await page.locator('#mobile-play').tap();
+ try { await page.waitForFunction(()=>document.querySelector('#about-video').currentTime>.3); } catch(e) { console.log('ABOUT DIAGNOSTICS '+name,await page.evaluate(()=>({scene:document.querySelector('#stage').dataset.scene,y:scrollY,inner:innerHeight,sequenceHeight:document.querySelector('#cover').offsetHeight,scrollHeight:document.documentElement.scrollHeight,bodyOverflow:getComputedStyle(document.body).overflow,seeking:document.querySelector('#about-video').seeking,opacity:getComputedStyle(document.querySelector('#about-video')).opacity,visibility:getComputedStyle(document.querySelector('#about-video')).visibility,retry:document.querySelector('#mobile-play').hidden,rect:document.querySelector('#about-video').getBoundingClientRect().toJSON(),videos:[...document.querySelectorAll('video')].map(v=>({id:v.id,src:v.currentSrc,time:v.currentTime,paused:v.paused,ready:v.readyState,error:v.error?.message}))})));throw e; }
  assert.deepEqual(await visible(page),['about-video']);
  assert(await swipe(page,120));
  await page.waitForTimeout(800);
