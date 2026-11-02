@@ -133,6 +133,22 @@ css+="""
   .cover-chrome,.about-chrome{transition:none}
 }
 """
+app=app.replace("if (p > .02 && introState === 'cover'", "if (!mobileMedia && p > .02 && introState === 'cover'")
+app=app.replace("if (p < .015 && introState === 'about'", "if (!mobileMedia && p < .015 && introState === 'about'")
+app=app.replace("behavior:reduced ? 'auto' : 'smooth'", "behavior:(reduced || mobileMedia) ? 'auto' : 'smooth'")
+app=app.replace("  const menuButton = $('menu-button');", """  document.querySelectorAll('a[href="#cover"]').forEach(link => link.addEventListener('click', event => {
+    if (!mobileMedia || !landingReady) return;
+    event.preventDefault(); transitionPending = false; resetToCover(); finishIntro();
+    scrollTo({top:sequence.offsetTop, behavior:'auto'});
+  }));
+  const menuButton = $('menu-button');""")
+css+="""
+@media(hover:none) and (pointer:coarse){
+  html{scroll-behavior:auto!important}
+  body{overflow-x:clip}
+}
+"""
+
 assert "ctx.setTransform(.5" not in app
 assert 'passive:false' in app and 'video.src = video.dataset.src' in app
 app=app.replace("intro.currentTime = 0;", "if (intro.readyState > 0 && intro.currentTime > .01) intro.currentTime = 0;").replace("about.currentTime = 0;", "if (about.readyState > 0 && about.currentTime > .01) about.currentTime = 0;")
