@@ -48,6 +48,7 @@ old="""    const response = await fetch(source, {cache:'force-cache'});
 new="""    video.muted = true; video.defaultMuted = true; video.playsInline = true;
     if (mobileMedia) {
       // iOS/WeChat use native HTTPS MP4, with byte-range loading and inline decoding.
+      if (video === about) return;
       video.src = video.dataset.src;
       video.preload = 'auto';
       video.load();
@@ -70,9 +71,9 @@ app=app.replace("intro.classList.remove('finished'); document.body.classList.add
 app=app.replace("await intro.play();","await playFilm(intro);")
 app=app.replace("introState = 'about'; transitionPending = false; about.pause();","introState = 'about'; transitionPending = false; about.pause(); setScene('about-end');")
 app=app.replace("introState = 'waiting'; transitionPending = true; finishIntro();","introState = 'waiting'; transitionPending = true; finishIntro(); setScene('about');")
-app=app.replace("introState = 'playing'; transitionPending = false; finishIntro();","introState = 'playing'; transitionPending = false; finishIntro(); setScene('about'); if (mobileMedia) about.load();")
+app=app.replace("introState = 'playing'; transitionPending = false; finishIntro();","introState = 'playing'; transitionPending = false; finishIntro(); setScene('about'); if (mobileMedia) { intro.pause(); intro.removeAttribute('src'); intro.load(); introPreparation = null; about.src = about.dataset.src; about.load(); }")
 app=app.replace("await about.play();","await playFilm(about);")
-app=app.replace("introState = 'cover'; about.pause();","introState = 'cover'; setScene('cover'); about.pause();")
+app=app.replace("introState = 'cover'; about.pause();","introState = 'cover'; setScene('cover'); about.pause(); if (mobileMedia) { about.removeAttribute('src'); about.load(); }")
 app=app.replace("else if (opening) intro.play().catch(finishIntro);","else if (opening) playFilm(intro);")
 start=app.index("  sequence.addEventListener('touchstart'")
 end=app.index("  about.addEventListener('timeupdate'",start)
