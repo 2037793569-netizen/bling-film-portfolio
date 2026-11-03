@@ -48,3 +48,9 @@ css+="""
 }
 """
 (root/'style.css').write_text(css)
+
+app=(root/'app.js').read_text()
+app=app.replace("    preloadMobileFilm('about').catch(() => {});","    preloadMobileFilm('about').catch(() => {});\n    prepareMobileNative(about);")
+app=app.replace("if (touchConsumed) { touchConsumed = touchNavigation = false; return; }","if (touchConsumed) { retryMobileNativeGesture(event); touchConsumed = touchNavigation = false; return; }")
+app=app.replace("link.addEventListener('click', event => { event.preventDefault(); startAboutTransition(); })","link.addEventListener('click', event => { event.preventDefault(); if (mobileMedia && event.isTrusted) mobileNativeAllowed = true; startAboutTransition(); })")
+(root/'app.js').write_text(app)

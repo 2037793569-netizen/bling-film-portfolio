@@ -65,19 +65,29 @@ async function run(engine,label) {
 }
 async function nativePlayback() {
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',args:['--no-sandbox']});
- const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),errors=[];
+ const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ await context.addInitScript(()=>{
+   const play=HTMLMediaElement.prototype.play;
+   HTMLMediaElement.prototype.play=function(){return navigator.userActivation.isActive?play.call(this):Promise.reject(new DOMException('Gesture required','NotAllowedError'));};
+ });
+ const page=await context.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(String(e)));
  await page.goto(process.env.SITE_URL||'http://127.0.0.1:8765',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.querySelector('#loader').hidden);
  if(await page.locator('#skip').isVisible())await page.locator('#skip').tap();
- await swipe(page);
- await page.waitForFunction(()=>document.querySelector('#stage').dataset.nativeReady==='true');
+ const cdp=await context.newCDPSession(page);
+ await cdp.send('Network.enable');
+ await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:100,downloadThroughput:125000,uploadThroughput:125000});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:180,y:550}]});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:180,y:410}]});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ await page.waitForFunction(()=>document.querySelector('#stage').dataset.nativeReady==='true',null,{timeout:12000});
  const time=await page.locator('#about-video').evaluate(v=>v.currentTime);await page.waitForTimeout(1200);
  assert(await page.locator('#about-video').evaluate(v=>v.currentTime)>time+.8);
  assert.equal(await page.locator('#stage').getAttribute('data-native'),'about');
  await swipe(page);assert.equal(await page.locator('#stage').getAttribute('data-scene'),'about-end');
  assert.equal(errors.length,0,errors.join('\\n'));
- console.log('PASS hardware video: mobile muted playback advances automatically after swipe; next swipe stops the film.');
+ console.log('PASS hardware video: initial autoplay denied, real touchend unlocks native playback at 1 Mbps; time advances and next swipe stops the film.');
  await browser.close();
 }
 (async()=>{await run(chromium,'Chrome');await run(webkit,'WebKit');await nativePlayback();})().catch(e=>{console.error(e);process.exit(1)});
