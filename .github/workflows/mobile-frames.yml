@@ -1,0 +1,56 @@
+name: Repair mobile frame playback
+on:
+  push:
+    branches: [main]
+    paths: ['tools/generate-mobile-frames.py', 'tools/mobile-frame-player.js', 'tools/test-mobile-frames.cjs', '.github/workflows/mobile-frames.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare bounded mobile animation chunks
+        run: |
+          if ! command -v ffmpeg >/dev/null; then sudo apt-get update -qq && sudo apt-get install -y ffmpeg; fi
+          python -m pip install Pillow
+          python tools/generate-mobile-frames.py
+          node --check dist/app.js
+      - name: Install browser engines
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Test real frame progression and mobile gestures
+        run: |
+          node tools/serve-media.cjs >/tmp/portfolio-http.log 2>&1 &
+          node tools/test-mobile-frames.cjs
+          python - <<'PY'
+          from pathlib import Path
+          text=Path('tools/test-video-playback.cjs').read_text().replace('evaluate(c=>c.width),1280','evaluate(c=>c.width),2560')
+          Path('tools/check-desktop-frames.cjs').write_text(text)
+          PY
+          node tools/check-desktop-frames.cjs
+      - name: Save verified fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dist tools/mobile-frames-report.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Stream mobile animation in bounded frame chunks without autoplay or timer jumps'
+            git push origin HEAD:main
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
