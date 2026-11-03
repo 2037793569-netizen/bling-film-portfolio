@@ -41,7 +41,7 @@
   function prepareMobileNative(video) {
     if (!mobileMedia || !mobileNativeAllowed || video.src) return;
     video.muted = video.defaultMuted = true; video.playsInline = true;
-    video.src = video.dataset.src; video.preload = video === about ? 'metadata' : 'auto'; video.load();
+    video.src = video.dataset.src; video.preload = 'auto'; video.load();
   }
   function playMobileFilm(kind) {
     stopMobileFilm();
@@ -57,7 +57,7 @@
     stage.dataset.native = kind;
     if (video.readyState >= 1 && video.currentTime > .01) video.currentTime = 0;
     let settled = false;
-    const timeout = setTimeout(fallback, 1600);
+    const timeout = setTimeout(fallback, 12000);
     function fallback() {
       if (settled || run !== mobileRun) return;
       settled = true; clearTimeout(timeout);
@@ -78,9 +78,8 @@
     try {
       const started = video.play();
       Promise.resolve(started).then(() => {
-        if (run !== mobileRun) { video.pause(); return; }
-        if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(reveal);
-        else if (video.readyState >= 2) reveal();
+        if (run !== mobileRun) return;
+        if (video.readyState >= 2) reveal();
         else video.addEventListener('loadeddata',reveal,{once:true});
       }).catch(fallback);
     } catch { fallback(); }

@@ -54,3 +54,25 @@ app=app.replace("    preloadMobileFilm('about').catch(() => {});","    preloadMo
 app=app.replace("if (touchConsumed) { touchConsumed = touchNavigation = false; return; }","if (touchConsumed) { retryMobileNativeGesture(event); touchConsumed = touchNavigation = false; return; }")
 app=app.replace("link.addEventListener('click', event => { event.preventDefault(); startAboutTransition(); })","link.addEventListener('click', event => { event.preventDefault(); if (mobileMedia && event.isTrusted) mobileNativeAllowed = true; startAboutTransition(); })")
 (root/'app.js').write_text(app)
+
+# Responsive stills retain enough pixels for a high-density phone without large desktop JPEGs.
+for name in ('gaze','about'):
+    with Image.open(root/'assets'/f'{name}.jpg') as source:
+        source=source.convert('RGB')
+        source.thumbnail((1280,720))
+        source.save(root/'assets'/f'{name}-mobile-still.webp','WEBP',quality=88,method=6)
+html=(root/'index.html').read_text()
+html=html.replace('class="cover-poster" src="assets/gaze.jpg"', 'class="cover-poster" src="assets/gaze-mobile-still.webp" srcset="assets/gaze-mobile-still.webp 1280w, assets/gaze.jpg 2560w" sizes="100vw"')
+html=html.replace('class="about-end-frame" src="assets/about.jpg"', 'class="about-end-frame" src="assets/about-mobile-still.webp" srcset="assets/about-mobile-still.webp 1280w, assets/about.jpg 2560w" sizes="100vw"')
+html=html.replace('poster="assets/about.jpg"','poster="assets/about-mobile-still.webp"')
+# Covers are started before their section enters view, using a bounded queue and a scroll backup.
+html=re.sub(r'(<img[^>]*?) src="(assets/[^"]+-640.webp)" srcset="([^"]+)"',r'\1 data-cover-src="\2" data-cover-srcset="\3"',html)
+
+# The literal replacement also handles versions installed by older passes.
+html=html.replace('20261103-frames10','20261103-mobile12').replace('20261103-mobile11','20261103-mobile12')
+(root/'index.html').write_text(html)
+app=(root/'app.js').read_text()
+anchor="  const mobileMedia = matchMedia('(hover: none) and (pointer: coarse)').matches;"
+loader=Path('tools/mobile-cover-loader.js').read_text()
+if 'const deferredCovers =' not in app: app=app.replace(anchor,anchor+'\n'+loader)
+(root/'app.js').write_text(app)

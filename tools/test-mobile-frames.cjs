@@ -67,8 +67,9 @@ async function nativePlayback() {
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',args:['--no-sandbox']});
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  await context.addInitScript(()=>{
-   const play=HTMLMediaElement.prototype.play;
-   HTMLMediaElement.prototype.play=function(){return navigator.userActivation.isActive?play.call(this):Promise.reject(new DOMException('Gesture required','NotAllowedError'));};
+   const play=HTMLMediaElement.prototype.play; window.touchEndActive=false;
+   document.addEventListener('touchend',()=>{window.touchEndActive=true;setTimeout(()=>window.touchEndActive=false,0);},true);
+   HTMLMediaElement.prototype.play=function(){return window.touchEndActive?play.call(this):Promise.reject(new DOMException('Gesture required','NotAllowedError'));};
  });
  const page=await context.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(String(e)));
@@ -78,6 +79,7 @@ async function nativePlayback() {
  const cdp=await context.newCDPSession(page);
  await cdp.send('Network.enable');
  await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:100,downloadThroughput:125000,uploadThroughput:125000});
+ await page.waitForTimeout(150);
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:180,y:550}]});
  await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:180,y:410}]});
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
