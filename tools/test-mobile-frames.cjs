@@ -55,7 +55,7 @@ async function run(engine,label) {
  await swipe(page);
  await page.waitForFunction(()=>document.querySelector('#stage').dataset.scene==='about-end',null,{timeout:40000});
  assert(Number(await page.locator('#mobile-animation').getAttribute('data-frame'))>=190,'Finish only after the real last frame');
- const filmRequests=requests.filter(s=>/about-mobile|opening-mobile|about-hd|balanced|gaze\.mp4/.test(s));assert.equal(filmRequests.length,0,filmRequests.join('\n'));
+ const filmRequests=requests.filter(s=>/about-mobile(?:-v2)?\.webp|opening-mobile\.webp|about-hd|balanced|gaze\.mp4/.test(s));assert.equal(filmRequests.length,0,filmRequests.join('\n'));
  assert.equal(await page.locator('#mobile-play').count(),0);
  await page.locator('#works').evaluate(e=>e.scrollIntoView());
  await page.waitForFunction(()=>[...document.querySelectorAll('.work-media img')].every(i=>i.complete&&i.naturalWidth>0),null,{timeout:30000});
