@@ -353,3 +353,6 @@ body{font-family:var(--body);letter-spacing:-.01em}
  .work-card:hover .work-media img{transform:none;filter:none}
  .work-card:hover .work-media i{opacity:0}
 }
+
+/* Keep mobile chapter copy visible throughout native and fallback animation. */
+@media(hover:none) and (pointer:coarse){.about-chrome{opacity:1!important}}
