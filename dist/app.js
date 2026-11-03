@@ -84,56 +84,141 @@
     }
   }, {passive:true});
   const mobileAnimation = $('mobile-animation');
-  const mobileDurations = {"opening": 4.064, "about": 8.064};
-  const mobileFilms = new Map();
-  let mobileOpeningReady = false, mobileRun = 0, mobileAnimationURL = null, mobileClock = 0;
-  function preloadMobileFilm(kind) {
-    if (!mobileFilms.has(kind)) {
-      const promise = fetch(kind === 'about' ? 'assets/about-mobile-v2.webp' : 'assets/opening-mobile.webp', {cache:'force-cache', priority:kind === 'opening' ? 'high' : 'low'})
-        .then(response => { if (!response.ok) throw new Error('Animation download failed'); return response.blob(); });
-      mobileFilms.set(kind, promise);
-      promise.catch(() => mobileFilms.delete(kind));
+  const mobileContext = mobileAnimation.getContext('2d', {alpha:false});
+  const mobileClips = {"opening":{"width":640,"height":360,"fps":24,"columns":4,"perSheet":12,"frames":98,"sheets":["assets/mobile-opening-frames-00.webp","assets/mobile-opening-frames-01.webp","assets/mobile-opening-frames-02.webp","assets/mobile-opening-frames-03.webp","assets/mobile-opening-frames-04.webp","assets/mobile-opening-frames-05.webp","assets/mobile-opening-frames-06.webp","assets/mobile-opening-frames-07.webp","assets/mobile-opening-frames-08.webp"]},"about":{"width":640,"height":360,"fps":24,"columns":4,"perSheet":12,"frames":194,"sheets":["assets/mobile-about-frames-00.webp","assets/mobile-about-frames-01.webp","assets/mobile-about-frames-02.webp","assets/mobile-about-frames-03.webp","assets/mobile-about-frames-04.webp","assets/mobile-about-frames-05.webp","assets/mobile-about-frames-06.webp","assets/mobile-about-frames-07.webp","assets/mobile-about-frames-08.webp","assets/mobile-about-frames-09.webp","assets/mobile-about-frames-10.webp","assets/mobile-about-frames-11.webp","assets/mobile-about-frames-12.webp","assets/mobile-about-frames-13.webp","assets/mobile-about-frames-14.webp","assets/mobile-about-frames-15.webp","assets/mobile-about-frames-16.webp"]}};
+  const mobileSheets = {opening:new Map(), about:new Map()};
+  let mobileOpeningReady = false, mobileRun = 0, mobileClock = 0;
+  function loadMobileSheet(kind, index) {
+    const clip = mobileClips[kind], sheets = mobileSheets[kind];
+    if (index >= clip.sheets.length) return Promise.resolve(null);
+    if (!sheets.has(index)) {
+      const entry = {image:null, promise:null};
+      entry.promise = new Promise((resolve, reject) => {
+        const picture = new Image();
+        picture.decoding = 'async';
+        picture.fetchPriority = index === 0 ? 'high' : 'auto';
+        picture.onload = async () => {
+          try {
+            if (picture.decode) await picture.decode();
+            entry.image = picture; resolve(picture);
+          } catch (error) { sheets.delete(index); reject(error); }
+        };
+        picture.onerror = () => { sheets.delete(index); reject(new Error('Frame download failed')); };
+        picture.src = clip.sheets[index];
+      });
+      sheets.set(index, entry);
     }
-    return mobileFilms.get(kind);
+    return sheets.get(index).promise;
   }
+  function preloadMobileFilm(kind) { return loadMobileSheet(kind, 0); }
   function stopMobileFilm() {
     mobileRun++;
     cancelAnimationFrame(mobileClock); mobileClock = 0;
-    mobileAnimation.onload = null;
-    mobileAnimation.removeAttribute('src');
     delete mobileAnimation.dataset.playing;
-    if (mobileAnimationURL) { URL.revokeObjectURL(mobileAnimationURL); mobileAnimationURL = null; }
+    delete stage.dataset.native; delete stage.dataset.nativeReady;
+    if (mobileMedia) { intro.pause(); about.pause(); }
+    // Keep the last painted frame until the next surface is ready.
+    for (const kind of Object.keys(mobileSheets)) {
+      for (const index of mobileSheets[kind].keys()) if (index > 0) mobileSheets[kind].delete(index);
+    }
+  }
+  let mobileNativeAllowed = true;
+  function prepareMobileNative(video) {
+    if (!mobileMedia || !mobileNativeAllowed || video.src) return;
+    video.muted = video.defaultMuted = true; video.playsInline = true;
+    video.src = video.dataset.src; video.preload = 'auto'; video.load();
   }
   function playMobileFilm(kind) {
     stopMobileFilm();
     const run = mobileRun;
-    // A still remains visible while the cached animation bytes are being prepared.
-    mobileAnimation.src = kind === 'opening' ? intro.poster : gazePoster.src;
-    preloadMobileFilm(kind).then(blob => {
-      if (run !== mobileRun || stage.dataset.scene !== (kind === 'opening' ? 'opening' : 'about')) return;
-      mobileAnimationURL = URL.createObjectURL(blob);
-      mobileAnimation.onload = () => {
+    const video = kind === 'opening' ? intro : about;
+    function frames() {
+      if (run !== mobileRun) return;
+      delete stage.dataset.native;
+      playMobileFrames(kind);
+    }
+    if (!mobileNativeAllowed) { frames(); return; }
+    prepareMobileNative(video);
+    stage.dataset.native = kind;
+    if (video.readyState >= 1 && video.currentTime > .01) video.currentTime = 0;
+    let settled = false;
+    const timeout = setTimeout(fallback, 1600);
+    function fallback() {
+      if (settled || run !== mobileRun) return;
+      settled = true; clearTimeout(timeout);
+      mobileNativeAllowed = false; video.pause();
+      for (const item of [intro,about]) { item.removeAttribute('src'); item.load(); }
+      frames();
+    }
+    function reveal() {
+      if (settled || run !== mobileRun) return;
+      settled = true; clearTimeout(timeout);
+      stage.dataset.nativeReady = 'true';
+      mobileAnimation.dataset.playing = kind;
+      setScene(kind);
+      if (kind === 'about') { introState = 'playing'; setVisualState(0,1,1); }
+      // Native playback supplies its own media clock and ended event.
+      if (kind === 'opening') prepareMobileNative(about);
+    }
+    try {
+      const started = video.play();
+      Promise.resolve(started).then(() => {
+        if (run !== mobileRun) { video.pause(); return; }
+        if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(reveal);
+        else if (video.readyState >= 2) reveal();
+        else video.addEventListener('loadeddata',reveal,{once:true});
+      }).catch(fallback);
+    } catch { fallback(); }
+  }
+  function playMobileFrames(kind) {
+    stopMobileFilm();
+    const run = mobileRun, clip = mobileClips[kind];
+    preloadMobileFilm(kind).then(() => {
+      if (run !== mobileRun) return;
+      mobileAnimation.width = clip.width; mobileAnimation.height = clip.height;
+      let position = 0, previous = performance.now(), painted = -1, sheetIndex = -1;
+      function tick(now) {
         if (run !== mobileRun) return;
-        mobileAnimation.onload = null;
-        mobileAnimation.dataset.playing = kind;
-        const started = performance.now(), duration = mobileDurations[kind] * 1000;
-        let lastUI = -100;
-        function tick(now) {
-          if (run !== mobileRun) return;
-          const elapsed = now - started, progress = Math.min(1, elapsed / duration);
-          if (kind === 'about' && elapsed - lastUI > 80) {
-            lastUI = elapsed;
-            $('sequence-progress').style.width = (progress * 100) + '%';
-            document.documentElement.style.setProperty('--about-fade', '1');
-          }
-          if (elapsed >= duration) {
-            if (kind === 'opening') finishIntro();
-            else { setAboutEndState(); updateSequence(); }
-          } else { mobileClock = requestAnimationFrame(tick); }
+        const delta = Math.min(80, Math.max(0, now - previous)); previous = now;
+        if (document.hidden) { mobileClock = requestAnimationFrame(tick); return; }
+        const candidate = Math.min(clip.frames - 1, Math.floor((position + delta) * clip.fps / 1000));
+        const index = Math.floor(candidate / clip.perSheet);
+        const entry = mobileSheets[kind].get(index);
+        if (!entry?.image) {
+          // Pause the film clock while a chunk loads; never count buffering as playback.
+          mobileAnimation.dataset.buffering = 'true';
+          loadMobileSheet(kind, index).catch(() => {});
+          mobileClock = requestAnimationFrame(tick); return;
         }
-        mobileClock = requestAnimationFrame(tick);
-      };
-      mobileAnimation.src = mobileAnimationURL;
+        position += delta;
+        if (candidate !== painted) {
+          const cell = candidate % clip.perSheet;
+          mobileContext.drawImage(entry.image,
+            (cell % clip.columns) * clip.width, Math.floor(cell / clip.columns) * clip.height,
+            clip.width, clip.height, 0, 0, clip.width, clip.height);
+          painted = candidate;
+          mobileAnimation.dataset.frame = String(candidate);
+          delete mobileAnimation.dataset.buffering;
+          if (!mobileAnimation.dataset.playing) {
+            mobileAnimation.dataset.playing = kind;
+            setScene(kind);
+            if (kind === 'about') { introState = 'playing'; setVisualState(0, 1, 1); }
+          }
+        }
+        if (index !== sheetIndex) {
+          sheetIndex = index;
+          for (const old of mobileSheets[kind].keys()) if (old < index) mobileSheets[kind].delete(old);
+          loadMobileSheet(kind, index + 1).catch(() => {});
+          loadMobileSheet(kind, index + 2).catch(() => {});
+        }
+        if (kind === 'about') $('sequence-progress').style.width = Math.min(100, position / (clip.frames / clip.fps * 10)) + '%';
+        if (position >= clip.frames * 1000 / clip.fps) {
+          if (kind === 'opening') finishIntro();
+          else { setAboutEndState(); updateSequence(); }
+        } else mobileClock = requestAnimationFrame(tick);
+      }
+      // Paint synchronously before changing visibility; an undecoded image never replaces the poster.
+      tick(previous);
     }).catch(() => {
       if (run !== mobileRun) return;
       if (kind === 'opening') finishIntro(); else setAboutEndState();
@@ -192,7 +277,7 @@
     if (!entered) return;
     if (mobileMedia) {
       forcePageTop(); opening = true; intro.classList.remove('finished');
-      document.body.classList.add('is-opening'); setScene('opening'); playMobileFilm('opening'); return;
+      document.body.classList.add('is-opening'); playMobileFilm('opening'); return;
     }
     const token = ++introPlaybackToken;
     forcePageTop(); opening = true;
@@ -270,13 +355,13 @@
   }
   async function startAboutTransition() {
     if (!landingReady) return;
-    if (introState === 'playing' || introState === 'about') return;
+    if (introState === 'playing' || introState === 'waiting' || introState === 'about') return;
     if (mobileMedia) {
       stopMobileFilm(); opening = false; introPlaybackToken++;
       intro.classList.add('finished'); document.body.classList.remove('is-opening');
       $('stage').classList.remove('about-quick-finish');
-      introState = 'playing'; transitionPending = false;
-      setScene('about'); setVisualState(0, 1, 1); $('sequence-progress').style.width = '0%';
+      introState = 'waiting'; transitionPending = false;
+      $('sequence-progress').style.width = '0%';
       playMobileFilm('about'); return;
     }
     if (!scrubReady) {

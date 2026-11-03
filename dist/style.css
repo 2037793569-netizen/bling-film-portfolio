@@ -309,3 +309,14 @@ body{font-family:var(--body);letter-spacing:-.01em}
  .recognition.is-active .recognition-ticker{animation-play-state:running}
  .cover-chrome,.about-chrome{transition:none}
 }
+
+/* Hardware video is visible only after a decoded first frame; canvas remains the automatic fallback. */
+@media(hover:none) and (pointer:coarse){
+ .stage[data-native="opening"]>#opening,.stage[data-native="about"]>#about-video{
+   display:block!important;visibility:visible;opacity:0;transition:none;z-index:6
+ }
+ .stage[data-native-ready="true"][data-native="opening"]>#opening,
+ .stage[data-native-ready="true"][data-native="about"]>#about-video{opacity:1}
+ .work-card:hover .work-media img{transform:none;filter:none}
+ .work-card:hover .work-media i{opacity:0}
+}

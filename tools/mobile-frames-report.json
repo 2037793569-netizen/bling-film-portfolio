@@ -1,0 +1,24 @@
+{
+  "opening": {
+    "width": 640,
+    "height": 360,
+    "fps": 24,
+    "columns": 4,
+    "perSheet": 12,
+    "frames": 98,
+    "bytes": 657726,
+    "first_chunk_bytes": 56706,
+    "chunks": 9
+  },
+  "about": {
+    "width": 640,
+    "height": 360,
+    "fps": 24,
+    "columns": 4,
+    "perSheet": 12,
+    "frames": 194,
+    "bytes": 1798190,
+    "first_chunk_bytes": 96074,
+    "chunks": 17
+  }
+}
