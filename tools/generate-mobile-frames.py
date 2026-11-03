@@ -76,3 +76,6 @@ anchor="  const mobileMedia = matchMedia('(hover: none) and (pointer: coarse)').
 loader=Path('tools/mobile-cover-loader.js').read_text()
 if 'const deferredCovers =' not in app: app=app.replace(anchor,anchor+'\n'+loader)
 (root/'app.js').write_text(app)
+
+html=(root/'index.html').read_text().replace('20261103-mobile12','20261103-mobile13')
+(root/'index.html').write_text(html)

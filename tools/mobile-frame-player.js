@@ -31,7 +31,7 @@
     cancelAnimationFrame(mobileClock); mobileClock = 0;
     delete mobileAnimation.dataset.playing;
     delete stage.dataset.native; delete stage.dataset.nativeReady;
-    if (mobileMedia) { intro.pause(); about.pause(); }
+    if (mobileMedia) { intro.pause(); about.pause(); intro.playbackRate = about.playbackRate = 1; }
     // Keep the last painted frame until the next surface is ready.
     for (const kind of Object.keys(mobileSheets)) {
       for (const index of mobileSheets[kind].keys()) if (index > 0) mobileSheets[kind].delete(index);
@@ -76,11 +76,21 @@
       if (kind === 'opening') prepareMobileNative(about);
     }
     try {
-      const started = video.play();
+      video.playbackRate = 0; const started = video.play();
       Promise.resolve(started).then(() => {
         if (run !== mobileRun) return;
-        if (video.readyState >= 2) reveal();
-        else video.addEventListener('loadeddata',reveal,{once:true});
+        const waitForBuffer = () => {
+          if (run !== mobileRun || settled) return;
+          const end = video.buffered.length ? video.buffered.end(video.buffered.length - 1) : 0;
+          const remaining = Number.isFinite(video.duration) ? video.duration - video.currentTime : 3;
+          if (end - video.currentTime < Math.min(3, remaining) - .08) {
+            setTimeout(waitForBuffer, 100); return;
+          }
+          video.playbackRate = 1;
+          if (video.readyState >= 2) reveal();
+          else video.addEventListener('loadeddata',reveal,{once:true});
+        };
+        waitForBuffer();
       }).catch(fallback);
     } catch { fallback(); }
   }
