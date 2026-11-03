@@ -126,7 +126,7 @@
   function prepareMobileNative(video) {
     if (!mobileMedia || !mobileNativeAllowed || video.src) return;
     video.muted = video.defaultMuted = true; video.playsInline = true;
-    video.src = video.dataset.src; video.preload = 'auto'; video.load();
+    video.src = video.dataset.src; video.preload = video === about ? 'metadata' : 'auto'; video.load();
   }
   function playMobileFilm(kind) {
     stopMobileFilm();
@@ -138,7 +138,7 @@
       playMobileFrames(kind);
     }
     if (!mobileNativeAllowed) { frames(); return; }
-    prepareMobileNative(video);
+    prepareMobileNative(video); video.preload = 'auto';
     stage.dataset.native = kind;
     if (video.readyState >= 1 && video.currentTime > .01) video.currentTime = 0;
     let settled = false;
@@ -147,7 +147,7 @@
       if (settled || run !== mobileRun) return;
       settled = true; clearTimeout(timeout);
       mobileNativeAllowed = false; video.pause();
-      for (const item of [intro,about]) { item.removeAttribute('src'); item.load(); }
+      for (const item of [intro,about]) { item.pause(); item.preload = 'metadata'; }
       frames();
     }
     function reveal() {
@@ -169,6 +169,17 @@
         else video.addEventListener('loadeddata',reveal,{once:true});
       }).catch(fallback);
     } catch { fallback(); }
+  }
+  function retryMobileNativeGesture(event) {
+    if (!mobileMedia || !event.isTrusted || (introState !== 'waiting' && introState !== 'playing')) return;
+    if (stage.dataset.nativeReady === 'true') return;
+    if (stage.dataset.native === 'about') {
+      // Call play inside touchend itself, where iOS grants transient user activation.
+      about.play().catch(() => {});
+    } else {
+      mobileNativeAllowed = true;
+      playMobileFilm('about');
+    }
   }
   function playMobileFrames(kind) {
     stopMobileFilm();
@@ -303,6 +314,7 @@
   if (mobileMedia) {
     preloadMobileFilm('opening').then(() => { mobileOpeningReady = true; }).catch(() => {});
     preloadMobileFilm('about').catch(() => {});
+    prepareMobileNative(about);
   } else prepareIntroVideo().then(() => setTimeout(prepareScrubVideo, 800)).catch(notice);
 
   function enter() {
@@ -500,7 +512,7 @@
   }, {passive:false});
   sequence.addEventListener('touchcancel', () => { touchNavigation = touchConsumed = false; }, {passive:true});
   sequence.addEventListener('touchend', event => {
-    if (touchConsumed) { touchConsumed = touchNavigation = false; return; }
+    if (touchConsumed) { retryMobileNativeGesture(event); touchConsumed = touchNavigation = false; return; }
     if (!touchNavigation) return;
     touchNavigation = false;
     const delta = touchStartY - (event.changedTouches[0]?.clientY || touchStartY);
@@ -520,7 +532,7 @@
     setAboutEndState();
     updateSequence();
   });
-  document.querySelectorAll('a[href="#about"]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); startAboutTransition(); }));
+  document.querySelectorAll('a[href="#about"]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); if (mobileMedia && event.isTrusted) mobileNativeAllowed = true; startAboutTransition(); }));
 
   document.querySelectorAll('a[href="#cover"]').forEach(link => link.addEventListener('click', event => {
     if (!mobileMedia || !landingReady) return;
