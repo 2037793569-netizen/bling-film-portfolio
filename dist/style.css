@@ -356,3 +356,7 @@ body{font-family:var(--body);letter-spacing:-.01em}
 
 /* Keep mobile chapter copy visible throughout native and fallback animation. */
 @media(hover:none) and (pointer:coarse){.about-chrome{opacity:1!important}}
+
+/* The first visible scene is the opening, even while its media is preparing. */
+.stage[data-scene="opening"]>.opening-start-frame{visibility:visible;z-index:0}
+@media(hover:none) and (pointer:coarse){.stage[data-scene="opening"]>#mobile-animation:not([data-playing]){visibility:hidden!important}}

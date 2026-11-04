@@ -20,7 +20,7 @@
   <link rel="preload" as="image" href="assets/pony-in-my-head-640.webp" imagesrcset="assets/pony-in-my-head-640.webp 640w, assets/pony-in-my-head-1280.webp 1280w" imagesizes="(min-width: 1800px) 12vw, (min-width: 761px) 23vw, 44vw" fetchpriority="high">
   <link rel="preload" as="image" href="assets/anora-sanhuo-mv-640.webp" imagesrcset="assets/anora-sanhuo-mv-640.webp 640w, assets/anora-sanhuo-mv-1280.webp 1280w" imagesizes="(min-width: 1800px) 12vw, (min-width: 761px) 23vw, 44vw" fetchpriority="high">
   <link rel="preload" as="image" href="assets/about-640.webp" imagesrcset="assets/about-640.webp 640w, assets/about-1280.webp 1280w" imagesizes="(min-width: 1800px) 12vw, (min-width: 761px) 23vw, 44vw" fetchpriority="high">
-  <link rel="stylesheet" href="style.css?v=20261103-covers15">
+  <link rel="stylesheet" href="style.css?v=20261104-opening16">
   <link rel="stylesheet" href="recognition.css">
 </head>
 <body class="is-loading">
@@ -53,10 +53,11 @@
   </header>
 
   <main>
-    <section class="intro-sequence" id="cover" data-scene="cover" aria-label="Opening film and interactive introduction">
+    <section class="intro-sequence" id="cover" data-scene="opening" aria-label="Opening film and interactive introduction">
       <div class="intro-sticky">
-        <div class="stage" id="stage" data-scene="cover">
+        <div class="stage" id="stage" data-scene="opening">
           <canvas id="mobile-animation" class="mobile-animation" width="768" height="432" aria-hidden="true"></canvas>
+          <img class="opening-start-frame" src="assets/opening.jpg" alt="" aria-hidden="true" fetchpriority="high">
           <img class="cover-poster" src="assets/gaze-mobile-still.webp" srcset="assets/gaze-mobile-still.webp 1280w, assets/gaze.jpg 2560w" sizes="100vw" alt="Animated character holding the word PORTFOLIO" fetchpriority="high">
           <canvas id="gaze-canvas" width="2560" height="1440" aria-label="The character's eyes follow the pointer"></canvas>
           <video id="about-video" class="about-video" muted playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5-page" x5-video-player-fullscreen="false" preload="none" data-src="assets/about-stream.mp4" data-src-balanced="assets/about-balanced.mp4" poster="assets/about-mobile-still.webp" aria-label="Bling introduction film"></video>
@@ -151,7 +152,7 @@
   </dialog>
   <div id="media-notice" class="notice" role="status" hidden>影像暂时无法播放，已为你保留静帧。</div>
   <noscript><style>.loader{display:none!important}.is-loading{overflow:auto!important}.opening{display:none}.intro-sequence{height:100vh!important}.about-video{display:none}</style></noscript>
-  <script src="app.js?v=20261103-covers15"></script>
+  <script src="app.js?v=20261104-opening16"></script>
   <script src="recognition.js?v=20261102-awards5"></script>
 </body>
 </html>

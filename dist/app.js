@@ -310,10 +310,12 @@
     if (!entered) return;
     if (mobileMedia) {
       forcePageTop(); opening = true; intro.classList.remove('finished');
-      document.body.classList.add('is-opening'); playMobileFilm('opening'); return;
+      document.body.classList.add('is-opening'); setScene('opening'); playMobileFilm('opening'); return;
     }
     const token = ++introPlaybackToken;
     forcePageTop(); opening = true;
+    setScene('opening'); canvas.style.opacity = '0'; intro.classList.remove('finished');
+    document.body.classList.add('is-opening');
     try {
       await prepareIntroVideo();
       if (token !== introPlaybackToken || !opening) return;
@@ -345,16 +347,20 @@
     if (entered) return;
     entered = true; $('load-count').textContent = '100'; $('load-bar').style.width = '100%';
     $('loader').style.setProperty('--load-ratio', '1');
-    // Reveal the opening only after the white loading layer has faded out.
+    // Establish the opening surface while the loader still covers the stage.
+    forcePageTop();
+    if (reduced) resetToCover();
+    else {
+      introState = 'cover'; opening = true; setScene('opening');
+      canvas.style.opacity = '0'; intro.classList.remove('finished');
+      document.body.classList.add('is-opening');
+    }
     setTimeout(() => {
       $('loader').classList.add('done');
       setTimeout(() => {
-        // Loading completion always establishes the cover before enabling navigation.
-        resetToCover();
-        forcePageTop();
         $('loader').hidden = true; document.body.classList.remove('is-loading');
         landingReady = true;
-        if (reduced || (mobileMedia && !mobileOpeningReady)) finishIntro(); else playIntro();
+        if (reduced) finishIntro(); else playIntro();
       }, reduced ? 0 : 560);
     }, reduced ? 0 : 160);
   }
