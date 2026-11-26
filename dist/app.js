@@ -632,7 +632,27 @@
     $('dialog-year-row').hidden = project.year === null; $('dialog-year').textContent = project.year || '2026'; $('dialog-format').textContent = project.format || 'AI SHORT FILM';
     $('dialog-award-row').hidden = !project.award; $('dialog-award').textContent = project.award || '';
     $('dialog-award-label').textContent = project.awardLabel || 'AWARD / 推荐';
-    $('dialog-link').hidden = !project.url; if (project.url) $('dialog-link').href = project.url;
+    const watchLink = $('dialog-link');
+    watchLink.hidden = !project.url;
+    watchLink.removeAttribute('href');
+    watchLink.target = '_blank';
+    if (project.url) {
+      const watchUrl = new URL(project.url, document.baseURI);
+      if (mobileMedia) {
+        if (watchUrl.hostname === 'www.xiaohongshu.com' && /^\/explore\/[a-f0-9]{24}$/.test(watchUrl.pathname)) {
+          watchUrl.pathname = watchUrl.pathname.replace('/explore/', '/discovery/item/');
+          watchLink.target = '_self';
+        } else if (watchUrl.hostname === 'www.douyin.com' && watchUrl.pathname.startsWith('/user/')) {
+          const videoId = watchUrl.searchParams.get('modal_id');
+          if (videoId && /^\d+$/.test(videoId)) {
+            watchUrl.pathname = '/video/' + videoId;
+            watchUrl.search = '';
+            watchLink.target = '_self';
+          }
+        }
+      }
+      watchLink.href = watchUrl.href;
+    }
     $('dialog-watch-label').textContent = project.watchLabel || '在站酷观看'; $('dialog-watch-meta').textContent = project.watchMeta || 'VIEW THE FILM / ZCOOL';
     showProjectCover(index, project); $('dialog-visual').classList.toggle('contain-image', Boolean(project.poster)); $('dialog-visual').classList.toggle('has-link', Boolean(project.url)); $('dialog-link').setAttribute('aria-label', (project.watchLabel || '在站酷观看') + '：' + project.title); if (!dialog.open) dialog.showModal();
     requestAnimationFrame(() => { dialog.scrollTop = 0; dialog.querySelector('.dialog-copy').scrollTop = 0; });
