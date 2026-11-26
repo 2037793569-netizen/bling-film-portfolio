@@ -590,7 +590,35 @@
     { index:'MV / 2026', title:'阿诺拉 · 三火flame', titleLines:['阿诺拉','三火flame'], description:'一间房间，一台电视，一盏酒杯，一只发夹，以及那个代表内心深处的另一个自己。释怀那些未曾开口的疯癫与眷恋。', image:'assets/anora-sanhuo-mv-detail.webp', poster:true, year:'2026', format:'MV', award:'MVLAND 嘻哈狂欢派对「最能代表嘻哈态度的 AI MV」创作大赛三火明星翻牌；站酷首页推荐', url:'https://www.zcool.com.cn/work/ZNzM5MDY4MTY=.html' },
     {"index":"AIGC TUTORIAL / 2025","title":"Tapnow非遗短片全流程教程","titleLines":["Tapnow非遗短片","全流程教程"],"description":"介绍 Tapnow 的功能，并以非遗短片为例，讲解从前期构思到成片的完整制作流程。","image":"assets/tapnow-heritage-1280.webp","poster":true,"year":"2025","format":"教程","awardLabel":"VIEWS / 观看量","award":"小红书观看量破 10 万","watchLabel":"在小红书观看","watchMeta":"VIEW THE TUTORIAL / XIAOHONGSHU","url":"https://www.xiaohongshu.com/explore/68f5fa830000000005030ad8?xsec_token=ABKt3O2DwtdovQrMphBLBjmXBMSSXfpFwfsvsM4NcC5y4=&xsec_source=pc_user"}
   ];
-  const dialog = $('project-dialog'); let projectIndex = 0;
+  const dialog = $('project-dialog');
+  const dialogImage = $('dialog-image');
+  const projectCards = [...document.querySelectorAll('[data-project]')];
+  const projectThumbnails = new Map(projectCards.map(card => [Number(card.dataset.project), card.querySelector('img')]));
+  let projectIndex = 0;
+  let pendingDetailImage;
+
+  function showProjectCover(index, project) {
+    const thumbnail = projectThumbnails.get(index);
+    const preview = thumbnail?.currentSrc || thumbnail?.src || project.image;
+    dialogImage.parentElement.querySelector('.dialog-image-detail')?.remove();
+    dialogImage.src = preview;
+    dialogImage.alt = project.title + ' cover';
+
+    pendingDetailImage = null;
+    if (dialogImage.src === new URL(project.image, document.baseURI).href) return;
+    const detailImage = new Image();
+    detailImage.alt = '';
+    detailImage.className = 'dialog-image-detail';
+    detailImage.decoding = 'async';
+    detailImage.fetchPriority = 'high';
+    pendingDetailImage = detailImage;
+    detailImage.src = project.image;
+    detailImage.decode().then(() => {
+      if (pendingDetailImage === detailImage && dialog.open) dialogImage.after(detailImage);
+    }).catch(() => {
+      // Keep the loaded cover when the larger image is unavailable.
+    });
+  }
   function showProject(index) {
     projectIndex = index; const project = projects[index];
     $('dialog-index').textContent = project.index;
@@ -606,10 +634,10 @@
     $('dialog-award-label').textContent = project.awardLabel || 'AWARD / 推荐';
     $('dialog-link').hidden = !project.url; if (project.url) $('dialog-link').href = project.url;
     $('dialog-watch-label').textContent = project.watchLabel || '在站酷观看'; $('dialog-watch-meta').textContent = project.watchMeta || 'VIEW THE FILM / ZCOOL';
-    $('dialog-image').src = project.image; $('dialog-image').alt = project.title + ' cover'; $('dialog-visual').classList.toggle('contain-image', Boolean(project.poster)); $('dialog-visual').classList.toggle('has-link', Boolean(project.url)); $('dialog-link').setAttribute('aria-label', (project.watchLabel || '在站酷观看') + '：' + project.title); if (!dialog.open) dialog.showModal();
+    showProjectCover(index, project); $('dialog-visual').classList.toggle('contain-image', Boolean(project.poster)); $('dialog-visual').classList.toggle('has-link', Boolean(project.url)); $('dialog-link').setAttribute('aria-label', (project.watchLabel || '在站酷观看') + '：' + project.title); if (!dialog.open) dialog.showModal();
     requestAnimationFrame(() => { dialog.scrollTop = 0; dialog.querySelector('.dialog-copy').scrollTop = 0; });
   }
-  document.querySelectorAll('[data-project]').forEach(card => card.addEventListener('click', () => showProject(Number(card.dataset.project))));
+  projectCards.forEach(card => card.addEventListener('click', () => showProject(Number(card.dataset.project))));
   document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => {
     document.querySelectorAll('[data-filter]').forEach(item => item.classList.toggle('active', item === button));
     document.querySelectorAll('.work-card[data-category]').forEach(card => { card.hidden = button.dataset.filter !== 'all' && card.dataset.category !== button.dataset.filter; });

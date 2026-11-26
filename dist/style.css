@@ -360,3 +360,5 @@ body{font-family:var(--body);letter-spacing:-.01em}
 /* The first visible scene is the opening, even while its media is preparing. */
 .stage[data-scene="opening"]>.opening-start-frame{visibility:visible;z-index:0}
 @media(hover:none) and (pointer:coarse){.stage[data-scene="opening"]>#mobile-animation:not([data-playing]){visibility:hidden!important}}
+
+.dialog-artwork > .dialog-image-detail{position:absolute;inset:0;pointer-events:none}
