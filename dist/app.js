@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const mobileMedia = matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const mobileMedia = matchMedia('(hover: none) and (pointer: coarse) and (max-width: 1024px)').matches;
   const snapPages = [...document.querySelectorAll('.snap-page')];
   // Covers start in HTML, before scripts or scrolling, and decode in the background.
   const projectCovers = [...document.querySelectorAll('.work-media img')];

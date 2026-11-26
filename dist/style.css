@@ -279,7 +279,7 @@ body{font-family:var(--body);letter-spacing:-.01em}
 .dialog-artwork > .dialog-image-detail{position:absolute;inset:0;pointer-events:none}
 
 .mobile-intro{display:none}
-@media (hover:none) and (pointer:coarse){
+@media (hover:none) and (pointer:coarse) and (max-width:1024px){
   html{scroll-behavior:auto;scroll-padding-top:70px}
   body{overflow-x:clip}
   .intro-sequence,.page-transition-line{display:none}
@@ -315,6 +315,6 @@ body{font-family:var(--body);letter-spacing:-.01em}
   .work-card:hover .work-media img{transform:none;filter:none}
   .work-card:hover .work-media i{opacity:0}
 }
-@media (hover:none) and (pointer:coarse) and (prefers-reduced-motion:reduce){
+@media (hover:none) and (pointer:coarse) and (max-width:1024px) and (prefers-reduced-motion:reduce){
   .loader{transition:none}
 }

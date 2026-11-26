@@ -20,7 +20,7 @@
   <link rel="preload" as="image" href="assets/pony-in-my-head-640.webp" imagesrcset="assets/pony-in-my-head-640.webp 640w, assets/pony-in-my-head-1280.webp 1280w" imagesizes="(min-width: 1800px) 12vw, (min-width: 761px) 23vw, 44vw" fetchpriority="high">
   <link rel="preload" as="image" href="assets/anora-sanhuo-mv-640.webp" imagesrcset="assets/anora-sanhuo-mv-640.webp 640w, assets/anora-sanhuo-mv-1280.webp 1280w" imagesizes="(min-width: 1800px) 12vw, (min-width: 761px) 23vw, 44vw" fetchpriority="high">
   <link rel="preload" as="image" href="assets/tapnow-heritage-640.webp" imagesrcset="assets/tapnow-heritage-640.webp 640w, assets/tapnow-heritage-1280.webp 1280w" imagesizes="(min-width: 1800px) 12vw, (min-width: 761px) 23vw, 44vw" fetchpriority="high">
-  <link rel="stylesheet" href="style.css?v=mobile-editorial25b">
+  <link rel="stylesheet" href="style.css?v=desktop26">
   <link rel="stylesheet" href="recognition.css">
 </head>
 <body class="is-loading">
@@ -77,10 +77,10 @@
       <div class="intro-sticky">
         <div class="stage" id="stage" data-scene="opening">
           <img class="opening-start-frame" id="opening-poster" data-src="assets/opening.jpg" alt="" aria-hidden="true" fetchpriority="high">
-          <img class="cover-poster" src="assets/gaze-mobile-still.webp" srcset="assets/gaze-mobile-still.webp 1280w, assets/gaze.jpg 2560w" sizes="(hover: none) and (pointer: coarse) 1px, 100vw" alt="Animated character holding the word PORTFOLIO" fetchpriority="high">
+          <img class="cover-poster" src="assets/gaze-mobile-still.webp" srcset="assets/gaze-mobile-still.webp 1280w, assets/gaze.jpg 2560w" sizes="(hover: none) and (pointer: coarse) and (max-width: 1024px) 1px, 100vw" alt="Animated character holding the word PORTFOLIO" fetchpriority="high">
           <canvas id="gaze-canvas" width="2560" height="1440" aria-label="The character's eyes follow the pointer"></canvas>
           <video id="about-video" class="about-video" muted playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5-page" x5-video-player-fullscreen="false" preload="none" data-src="assets/about-stream.mp4" data-src-balanced="assets/about-balanced.mp4" poster="assets/about-mobile-still.webp" aria-label="Bling introduction film"></video>
-          <img class="about-end-frame" src="assets/about-mobile-still.webp" srcset="assets/about-mobile-still.webp 1280w, assets/about.jpg 2560w" sizes="(hover: none) and (pointer: coarse) 1px, 100vw" alt="" aria-hidden="true">
+          <img class="about-end-frame" src="assets/about-mobile-still.webp" srcset="assets/about-mobile-still.webp 1280w, assets/about.jpg 2560w" sizes="(hover: none) and (pointer: coarse) and (max-width: 1024px) 1px, 100vw" alt="" aria-hidden="true">
           <video id="opening" class="opening" muted playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5-page" x5-video-player-fullscreen="false" preload="none" data-src="assets/opening-stream.mp4" data-src-balanced="assets/opening-balanced.mp4" aria-label="Opening animation"></video>
           <video id="gaze" class="gaze-source" muted playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5-page" x5-video-player-fullscreen="false" preload="none" aria-hidden="true"></video>
         </div>
@@ -171,7 +171,7 @@
   </dialog>
   <div id="media-notice" class="notice" role="status" hidden>影像暂时无法播放，已为你保留静帧。</div>
   <noscript><style>.loader{display:none!important}.is-loading{overflow:auto!important}.opening{display:none}.intro-sequence{height:100vh!important}.about-video{display:none}</style></noscript>
-  <script src="app.js?v=mobile-editorial25"></script>
+  <script src="app.js?v=desktop26"></script>
   <script src="recognition.js?v=20261125-award-order19"></script>
 </body>
 </html>
