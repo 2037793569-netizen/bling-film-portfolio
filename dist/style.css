@@ -280,22 +280,41 @@ body{font-family:var(--body);letter-spacing:-.01em}
 
 .mobile-intro{display:none}
 @media (hover:none) and (pointer:coarse){
-  html{scroll-behavior:auto}
+  html{scroll-behavior:auto;scroll-padding-top:70px}
   body{overflow-x:clip}
-  body.is-loading{overflow-y:auto}
-  #loader,.intro-sequence,.page-transition-line{display:none}
+  .intro-sequence,.page-transition-line{display:none}
+  .loader{transition-duration:.28s}
+  .hello-ink{animation-duration:1s;animation-delay:.08s}
+  .loader-center .hello-caption{animation-duration:.24s;animation-delay:.76s}
   .site-header{background:var(--paper);backdrop-filter:none;-webkit-backdrop-filter:none}
   .mobile-intro{display:block}
   .mobile-intro-panel{
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
-    min-height:calc(100svh - 70px);padding:28px 0;
+    display:grid;
+    grid-template-rows:auto minmax(min-content,1fr) auto;
+    gap:clamp(24px,4svh,42px);
+    align-items:center;
+    min-height:min(calc(100svh - 70px),740px);
+    padding:32px 0 36px;
   }
-  #mobile-cover{min-height:100svh;padding-top:98px}
-  .mobile-intro-panel img{width:100%;height:auto}
-  .mobile-intro-caption{padding-inline:var(--gutter);text-align:center}
-  .mobile-intro-caption p{margin:0 0 14px;font-size:14px}
+  #mobile-cover{min-height:min(100svh,810px);padding-top:98px}
+  .mobile-intro-kicker,.mobile-intro-caption{margin-inline:6vw}
+  .mobile-intro-kicker{
+    display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+    padding-top:12px;border-top:1px solid var(--line);
+    font-size:10px;font-weight:600;letter-spacing:.08em;
+  }
+  .mobile-intro-kicker span:last-child{color:#626262;text-align:right}
+  .mobile-intro-panel img{width:100%;height:auto;aspect-ratio:16/9;object-fit:contain}
+  .mobile-intro-caption h1,.mobile-intro-caption h2{
+    margin:0;font-size:clamp(25px,7.5vw,38px);line-height:1.2;letter-spacing:-.03em;
+  }
+  .mobile-intro-caption p{margin:9px 0 0;color:#505050;font-size:13px;line-height:1.65}
+  .mobile-intro-caption .text-link{display:inline-flex;align-items:center;gap:14px;margin-top:17px;min-height:38px}
   .motion-ready .snap-page>*{opacity:1;transform:none;transition:none}
   .recognition-ticker{animation-play-state:paused}
   .work-card:hover .work-media img{transform:none;filter:none}
   .work-card:hover .work-media i{opacity:0}
+}
+@media (hover:none) and (pointer:coarse) and (prefers-reduced-motion:reduce){
+  .loader{transition:none}
 }

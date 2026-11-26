@@ -361,8 +361,36 @@
   }
 
   if (mobileMedia) {
-    $('loader').hidden = true;
-    document.body.classList.remove('is-loading');
+    const loader = $('loader');
+    const firstCover = document.querySelector('#mobile-cover img');
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let dismissed = false;
+    let limit;
+    const updateProgress = value => {
+      $('load-count').textContent = String(value);
+      $('load-bar').style.width = value + '%';
+    };
+    const dismissLoader = () => {
+      if (dismissed) return;
+      dismissed = true;
+      clearTimeout(limit);
+      updateProgress(100);
+      loader.classList.add('done');
+      document.body.classList.remove('is-loading');
+      setTimeout(() => { loader.hidden = true; }, reduceMotion ? 0 : 280);
+    };
+    $('enter-now').addEventListener('click', dismissLoader);
+    if (location.hash && !['#cover', '#mobile-cover'].includes(location.hash)) {
+      dismissLoader();
+    } else {
+      updateProgress(20);
+      const coverReady = firstCover.decode().then(() => {
+        if (!dismissed) updateProgress(75);
+      }).catch(() => {});
+      const helloDuration = new Promise(resolve => setTimeout(resolve, reduceMotion ? 0 : 1300));
+      limit = setTimeout(dismissLoader, 2300);
+      Promise.all([coverReady, helloDuration]).then(dismissLoader);
+    }
     document.querySelectorAll('a[href="#cover"]').forEach(link => { link.href = '#mobile-cover'; });
   } else {
     initDesktopIntro();
