@@ -1,18 +1,8 @@
 (() => {
   'use strict';
-  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
-  function forcePageTop() {
-    document.documentElement.style.scrollBehavior = 'auto';
-    scrollTo(0, 0);
-    requestAnimationFrame(() => document.documentElement.style.removeProperty('scroll-behavior'));
-  }
-  forcePageTop();
-  addEventListener('pageshow', () => requestAnimationFrame(forcePageTop), { once:true });
-  addEventListener('beforeunload', () => scrollTo(0, 0));
   const $ = id => document.getElementById(id);
-  const intro = $('opening'), gaze = $('gaze'), about = $('about-video'), canvas = $('gaze-canvas'), sequence = $('cover');
   const mobileMedia = matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const snapPages = [...document.querySelectorAll('.snap-page')];
   // Covers start in HTML, before scripts or scrolling, and decode in the background.
   const projectCovers = [...document.querySelectorAll('.work-media img')];
   projectCovers.forEach(picture => {
@@ -26,549 +16,358 @@
     }, {once:true});
   });
 
-  const stage = $('stage');
-  function setScene(scene) { stage.dataset.scene = scene; sequence.dataset.scene = scene; }
-  const ctx = canvas.getContext('2d');
-  const gazePoster = document.querySelector('.cover-poster');
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const base = document.createElement('canvas'); base.width = 2560; base.height = 1440;
-  const bc = base.getContext('2d');
-  if (mobileMedia) { canvas.width = base.width = 1; canvas.height = base.height = 1; }
-  const eyeSprite = new Image(); if (!mobileMedia) eyeSprite.src = 'assets/eye-frames.webp';
-  const eyeCrop = { x:1000, y:910, w:460, h:130, cols:4 };
-  // Average pupil positions measured from the exact source frames in 转眼.mp4.
-  const eyeFrames = [[1270.5,955],[1191.5,957.5],[1230,957.5],[1207.5,958.5],[1248.5,959.5],[1237.5,960],[1180,961.5],[1264.5,962.5],[1169.5,965.5],[1285.5,967],[1293.5,969.5],[1164,971],[1162,983],[1167.5,992],[1172.5,997],[1181,1007]];
-  let entered = false, landingReady = false, ready = false, scrubReady = false, opening = false, loadProgress = 0, raf = 0, scrollRaf = 0;
-  let introState = 'cover', transitionPending = false, touchStartY = 0, hashBooting = false, returningToCover = false;
-  let target = { x:0, y:-0.65 }, current = { x:0, y:-0.65 };
-
-  function notice() { $('media-notice').hidden = false; setTimeout(() => $('media-notice').hidden = true, 5000); }
-  function captureGazeFrame() {
-    if (mobileMedia) { ready = gazePoster.complete && gazePoster.naturalWidth > 0; return; }
-    if (ready || !gazePoster.complete || !gazePoster.naturalWidth || !eyeSprite.complete || !eyeSprite.naturalWidth) return;
-    bc.drawImage(gazePoster, 0, 0, 2560, 1440);
-    ctx.drawImage(base, 0, 0);
-    ready = true; drawEyes();
-  }
-  function drawEyes() {
-    if (mobileMedia || !ready || opening) return;
-    ctx.clearRect(eyeCrop.x, eyeCrop.y, eyeCrop.w, eyeCrop.h);
-    ctx.drawImage(base, eyeCrop.x, eyeCrop.y, eyeCrop.w, eyeCrop.h, eyeCrop.x, eyeCrop.y, eyeCrop.w, eyeCrop.h);
-    const wantedX = 1227.75 + current.x * 65.75;
-    const wantedY = 981 + current.y * 26;
-    let frameIndex = 0, best = Infinity;
-    eyeFrames.forEach((point, index) => {
-      const distance = Math.hypot((point[0] - wantedX) / 65.75, (point[1] - wantedY) / 26);
-      if (distance < best) { best = distance; frameIndex = index; }
-    });
-    const col = frameIndex % eyeCrop.cols, row = Math.floor(frameIndex / eyeCrop.cols);
-    ctx.drawImage(eyeSprite, col * eyeCrop.w, row * eyeCrop.h, eyeCrop.w, eyeCrop.h, eyeCrop.x, eyeCrop.y, eyeCrop.w, eyeCrop.h);
-    canvas.style.opacity = '1';
-  }
-  function animateEyes() {
-    raf = 0; if (!ready || opening || document.hidden) return;
-    current.x += (target.x - current.x) * .16; current.y += (target.y - current.y) * .16; drawEyes();
-    if (Math.abs(target.x-current.x) + Math.abs(target.y-current.y) > .004) raf = requestAnimationFrame(animateEyes);
-  }
-  function aim(x, y) {
-    if (mobileMedia) return;
-    target.x = Math.max(-1, Math.min(1, x)); target.y = Math.max(-1, Math.min(1, y));
-    if (!raf && !reduced) raf = requestAnimationFrame(animateEyes);
-  }
-  sequence.addEventListener('pointermove', event => {
-    if (introState !== 'cover' || sequenceProgress() > .19) return;
-    const rect = canvas.getBoundingClientRect(), scale = Math.min(rect.width / 2560, rect.height / 1440);
-    const eyeX = rect.left + rect.width / 2, eyeY = rect.top + (rect.height - 1440 * scale) / 2 + 965 * scale;
-    aim((event.clientX - eyeX) / (innerWidth * .34), (event.clientY - eyeY) / (innerHeight * .38));
-  });
-  sequence.addEventListener('pointerleave', () => aim(0, -.65));
-  sequence.addEventListener('pointerdown', event => { if (event.pointerType === 'touch') aim((event.clientX / innerWidth - .5) * 2, (event.clientY / innerHeight - .5) * 2); });
-
-  // Keep the hero geometry stable when the WeChat address/tool bars expand or collapse.
-  let mobileViewportWidth = innerWidth;
-  function setMobileScreen() {
-    if (!mobileMedia) return;
-    document.documentElement.style.setProperty('--mobile-screen', Math.round(visualViewport?.height || innerHeight) + 'px');
-  }
-  setMobileScreen();
-  addEventListener('resize', () => {
-    if (mobileMedia && Math.abs(innerWidth - mobileViewportWidth) > 100) {
-      mobileViewportWidth = innerWidth; setMobileScreen();
+  function initDesktopIntro() {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+    function forcePageTop() {
+      document.documentElement.style.scrollBehavior = 'auto';
+      scrollTo(0, 0);
+      requestAnimationFrame(() => document.documentElement.style.removeProperty('scroll-behavior'));
     }
-  }, {passive:true});
-  const mobileAnimation = $('mobile-animation');
-  const mobileContext = mobileAnimation.getContext('2d', {alpha:false});
-  const mobileClips = {"opening":{"width":640,"height":360,"fps":24,"columns":4,"perSheet":12,"frames":98,"sheets":["assets/mobile-opening-frames-00.webp","assets/mobile-opening-frames-01.webp","assets/mobile-opening-frames-02.webp","assets/mobile-opening-frames-03.webp","assets/mobile-opening-frames-04.webp","assets/mobile-opening-frames-05.webp","assets/mobile-opening-frames-06.webp","assets/mobile-opening-frames-07.webp","assets/mobile-opening-frames-08.webp"]},"about":{"width":640,"height":360,"fps":24,"columns":4,"perSheet":12,"frames":194,"sheets":["assets/mobile-about-frames-00.webp","assets/mobile-about-frames-01.webp","assets/mobile-about-frames-02.webp","assets/mobile-about-frames-03.webp","assets/mobile-about-frames-04.webp","assets/mobile-about-frames-05.webp","assets/mobile-about-frames-06.webp","assets/mobile-about-frames-07.webp","assets/mobile-about-frames-08.webp","assets/mobile-about-frames-09.webp","assets/mobile-about-frames-10.webp","assets/mobile-about-frames-11.webp","assets/mobile-about-frames-12.webp","assets/mobile-about-frames-13.webp","assets/mobile-about-frames-14.webp","assets/mobile-about-frames-15.webp","assets/mobile-about-frames-16.webp"]}};
-  const mobileSheets = {opening:new Map(), about:new Map()};
-  let mobileOpeningReady = false, mobileRun = 0, mobileClock = 0;
-  function loadMobileSheet(kind, index) {
-    const clip = mobileClips[kind], sheets = mobileSheets[kind];
-    if (index >= clip.sheets.length) return Promise.resolve(null);
-    if (!sheets.has(index)) {
-      const entry = {image:null, promise:null};
-      entry.promise = new Promise((resolve, reject) => {
-        const picture = new Image();
-        picture.decoding = 'async';
-        picture.fetchPriority = index === 0 ? 'high' : 'auto';
-        picture.onload = async () => {
-          try {
-            if (picture.decode) await picture.decode();
-            entry.image = picture; resolve(picture);
-          } catch (error) { sheets.delete(index); reject(error); }
-        };
-        picture.onerror = () => { sheets.delete(index); reject(new Error('Frame download failed')); };
-        picture.src = clip.sheets[index];
-      });
-      sheets.set(index, entry);
-    }
-    return sheets.get(index).promise;
-  }
-  function preloadMobileFilm(kind) { return loadMobileSheet(kind, 0); }
-  function stopMobileFilm() {
-    mobileRun++;
-    cancelAnimationFrame(mobileClock); mobileClock = 0;
-    delete mobileAnimation.dataset.playing;
-    delete stage.dataset.native; delete stage.dataset.nativeReady;
-    if (mobileMedia) { intro.pause(); about.pause(); intro.playbackRate = about.playbackRate = 1; }
-    // Keep the last painted frame until the next surface is ready.
-    for (const kind of Object.keys(mobileSheets)) {
-      for (const index of mobileSheets[kind].keys()) if (index > 0) mobileSheets[kind].delete(index);
-    }
-  }
-  let mobileNativeAllowed = true;
-  function prepareMobileNative(video) {
-    if (!mobileMedia || !mobileNativeAllowed || video.src) return;
-    video.muted = video.defaultMuted = true; video.playsInline = true;
-    video.src = video.dataset.src; video.preload = 'auto'; video.load();
-  }
-  function playMobileFilm(kind) {
-    stopMobileFilm();
-    const run = mobileRun;
-    const video = kind === 'opening' ? intro : about;
-    function frames() {
-      if (run !== mobileRun) return;
-      delete stage.dataset.native;
-      playMobileFrames(kind);
-    }
-    if (!mobileNativeAllowed) { frames(); return; }
-    prepareMobileNative(video); video.preload = 'auto';
-    stage.dataset.native = kind;
-    if (video.readyState >= 1 && video.currentTime > .01) video.currentTime = 0;
-    let settled = false;
-    const timeout = setTimeout(fallback, 12000);
-    function fallback() {
-      if (settled || run !== mobileRun) return;
-      settled = true; clearTimeout(timeout);
-      mobileNativeAllowed = false; video.pause();
-      for (const item of [intro,about]) { item.pause(); item.preload = 'metadata'; }
-      frames();
-    }
-    function reveal() {
-      if (settled || run !== mobileRun) return;
-      settled = true; clearTimeout(timeout);
-      stage.dataset.nativeReady = 'true';
-      mobileAnimation.dataset.playing = kind;
-      setScene(kind);
-      if (kind === 'about') { introState = 'playing'; setVisualState(0,1,1); }
-      // Native playback supplies its own media clock and ended event.
-      if (kind === 'opening') prepareMobileNative(about);
-    }
-    try {
-      video.playbackRate = 0; const started = video.play();
-      Promise.resolve(started).then(() => {
-        if (run !== mobileRun) return;
-        const waitForBuffer = () => {
-          if (run !== mobileRun || settled) return;
-          const end = video.buffered.length ? video.buffered.end(video.buffered.length - 1) : 0;
-          const remaining = Number.isFinite(video.duration) ? video.duration - video.currentTime : 3;
-          if (end - video.currentTime < Math.min(3, remaining) - .08) {
-            setTimeout(waitForBuffer, 100); return;
-          }
-          video.playbackRate = 1;
-          if (video.readyState >= 2) reveal();
-          else video.addEventListener('loadeddata',reveal,{once:true});
-        };
-        waitForBuffer();
-      }).catch(fallback);
-    } catch { fallback(); }
-  }
-  function retryMobileNativeGesture(event) {
-    if (!mobileMedia || !event.isTrusted || (introState !== 'waiting' && introState !== 'playing')) return;
-    if (stage.dataset.nativeReady === 'true') return;
-    if (stage.dataset.native === 'about') {
-      // Call play inside touchend itself, where iOS grants transient user activation.
-      about.play().catch(() => {});
-    } else {
-      mobileNativeAllowed = true;
-      playMobileFilm('about');
-    }
-  }
-  function playMobileFrames(kind) {
-    stopMobileFilm();
-    const run = mobileRun, clip = mobileClips[kind];
-    preloadMobileFilm(kind).then(() => {
-      if (run !== mobileRun) return;
-      mobileAnimation.width = clip.width; mobileAnimation.height = clip.height;
-      let position = 0, previous = performance.now(), painted = -1, sheetIndex = -1;
-      function tick(now) {
-        if (run !== mobileRun) return;
-        const delta = Math.min(80, Math.max(0, now - previous)); previous = now;
-        if (document.hidden) { mobileClock = requestAnimationFrame(tick); return; }
-        const candidate = Math.min(clip.frames - 1, Math.floor((position + delta) * clip.fps / 1000));
-        const index = Math.floor(candidate / clip.perSheet);
-        const entry = mobileSheets[kind].get(index);
-        if (!entry?.image) {
-          // Pause the film clock while a chunk loads; never count buffering as playback.
-          mobileAnimation.dataset.buffering = 'true';
-          loadMobileSheet(kind, index).catch(() => {});
-          mobileClock = requestAnimationFrame(tick); return;
-        }
-        position += delta;
-        if (candidate !== painted) {
-          const cell = candidate % clip.perSheet;
-          mobileContext.drawImage(entry.image,
-            (cell % clip.columns) * clip.width, Math.floor(cell / clip.columns) * clip.height,
-            clip.width, clip.height, 0, 0, clip.width, clip.height);
-          painted = candidate;
-          mobileAnimation.dataset.frame = String(candidate);
-          delete mobileAnimation.dataset.buffering;
-          if (!mobileAnimation.dataset.playing) {
-            mobileAnimation.dataset.playing = kind;
-            setScene(kind);
-            if (kind === 'about') { introState = 'playing'; setVisualState(0, 1, 1); }
-          }
-        }
-        if (index !== sheetIndex) {
-          sheetIndex = index;
-          for (const old of mobileSheets[kind].keys()) if (old < index) mobileSheets[kind].delete(old);
-          loadMobileSheet(kind, index + 1).catch(() => {});
-          loadMobileSheet(kind, index + 2).catch(() => {});
-        }
-        if (kind === 'about') $('sequence-progress').style.width = Math.min(100, position / (clip.frames / clip.fps * 10)) + '%';
-        if (position >= clip.frames * 1000 / clip.fps) {
-          if (kind === 'opening') finishIntro();
-          else { setAboutEndState(); updateSequence(); }
-        } else mobileClock = requestAnimationFrame(tick);
-      }
-      // Paint synchronously before changing visibility; an undecoded image never replaces the poster.
-      tick(previous);
-    }).catch(() => {
-      if (run !== mobileRun) return;
-      if (kind === 'opening') finishIntro(); else setAboutEndState();
-    });
-  }
-
-  let introPlaybackToken = 0, introPreparation = null, aboutPreparation = null;
-  function playFilm(video) {
-    video.muted = true; video.defaultMuted = true; video.playsInline = true;
-    return Promise.resolve(video.play());
-  }
-  async function bufferFilm(video) {
-    const connection = navigator.connection;
-    // Unknown or slower networks use the fully buffered lightweight film.
-    // Only request 1080p when both the connection and decoder can handle it.
-    let useBalanced = innerWidth >= 1000 && connection && !connection.saveData &&
-      connection.effectiveType === '4g' && connection.downlink >= 5;
-    if (useBalanced && navigator.mediaCapabilities) {
-      try {
-        const support = await navigator.mediaCapabilities.decodingInfo({
-          type:'file', video:{contentType:'video/mp4; codecs="avc1.4D4028"',
-          width:1920, height:1080, bitrate:2200000, framerate:24}
-        });
-        useBalanced = support.supported && support.smooth && support.powerEfficient;
-      } catch { useBalanced = false; }
-    } else { useBalanced = false; }
-    const source = useBalanced && video.dataset.srcBalanced ? video.dataset.srcBalanced : video.dataset.src;
-    video.muted = true; video.defaultMuted = true; video.playsInline = true;
-    if (mobileMedia) return;
-    const response = await fetch(source, {cache:'force-cache'});
-    if (!response.ok) throw new Error('Film download failed');
-    const blob = await response.blob();
-    video.src = URL.createObjectURL(blob);
-    video.preload = 'auto';
-    await new Promise((resolve, reject) => {
-      video.addEventListener('loadeddata', resolve, {once:true});
-      video.addEventListener('error', reject, {once:true});
-      video.load();
-    });
-  }
-  function prepareIntroVideo() {
-    if (!introPreparation) introPreparation = bufferFilm(intro).catch(error => {
-      introPreparation = null; throw error;
-    });
-    return introPreparation;
-  }
-  function finishIntro() {
-    if (mobileMedia) stopMobileFilm();
-    introPlaybackToken++;
-    opening = false; intro.pause(); intro.classList.add('finished'); document.body.classList.remove('is-opening');
-    if (introState === 'cover') setScene('cover');
-    captureGazeFrame(); drawEyes(); updateSequence();
-    if (!mobileMedia) prepareIntroVideo().then(prepareScrubVideo).catch(() => {});
-  }
-  async function playIntro() {
-    if (!entered) return;
-    if (mobileMedia) {
-      forcePageTop(); opening = true; intro.classList.remove('finished');
-      document.body.classList.add('is-opening'); setScene('opening'); playMobileFilm('opening'); return;
-    }
-    const token = ++introPlaybackToken;
-    forcePageTop(); opening = true;
-    setScene('opening'); canvas.style.opacity = '0'; intro.classList.remove('finished');
-    document.body.classList.add('is-opening');
-    try {
-      await prepareIntroVideo();
-      if (token !== introPlaybackToken || !opening) return;
-      canvas.style.opacity = '0';
-      intro.classList.remove('finished'); document.body.classList.add('is-opening'); setScene('opening'); if (intro.readyState > 0 && intro.currentTime > .01) intro.currentTime = 0;
-      await playFilm(intro);
-    } catch { if (token === introPlaybackToken) { finishIntro(); notice(); } }
-  }
-  function prepareScrubVideo() {
-    if (aboutPreparation) return aboutPreparation;
-    aboutPreparation = bufferFilm(about).then(() => {
-      scrubReady = true;
-      if (introState === 'about') setAboutEndState();
-      else if (transitionPending) startAboutTransition();
-      updateSequence();
-    }).catch(() => { aboutPreparation = null; notice(); });
-    return aboutPreparation;
-  }
-  // Download in sequence: opening first, then the short introduction in the background.
-  if (mobileMedia) {
-    preloadMobileFilm('opening').then(() => { mobileOpeningReady = true; }).catch(() => {});
-    preloadMobileFilm('about').catch(() => {});
-    prepareMobileNative(about);
-    prepareMobileNative(about);
-    prepareMobileNative(about);
-  } else prepareIntroVideo().then(() => setTimeout(prepareScrubVideo, 800)).catch(notice);
-
-  function enter() {
-    if (entered) return;
-    entered = true; $('load-count').textContent = '100'; $('load-bar').style.width = '100%';
-    $('loader').style.setProperty('--load-ratio', '1');
-    // Establish the opening surface while the loader still covers the stage.
     forcePageTop();
-    if (reduced) resetToCover();
-    else {
-      introState = 'cover'; opening = true; setScene('opening');
-      canvas.style.opacity = '0'; intro.classList.remove('finished');
+    addEventListener('pageshow', () => requestAnimationFrame(forcePageTop), { once:true });
+    addEventListener('beforeunload', () => scrollTo(0, 0));
+    const intro = $('opening'), gaze = $('gaze'), about = $('about-video'), canvas = $('gaze-canvas'), sequence = $('cover');
+    const openingPoster = $('opening-poster');
+    openingPoster.src = openingPoster.dataset.src;
+    const stage = $('stage');
+    function setScene(scene) { stage.dataset.scene = scene; sequence.dataset.scene = scene; }
+    const ctx = canvas.getContext('2d');
+    const gazePoster = document.querySelector('.cover-poster');
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const base = document.createElement('canvas'); base.width = 2560; base.height = 1440;
+    const bc = base.getContext('2d');
+    const eyeSprite = new Image(); eyeSprite.src = 'assets/eye-frames.webp';
+    const eyeCrop = { x:1000, y:910, w:460, h:130, cols:4 };
+    // Average pupil positions measured from the exact source frames in 转眼.mp4.
+    const eyeFrames = [[1270.5,955],[1191.5,957.5],[1230,957.5],[1207.5,958.5],[1248.5,959.5],[1237.5,960],[1180,961.5],[1264.5,962.5],[1169.5,965.5],[1285.5,967],[1293.5,969.5],[1164,971],[1162,983],[1167.5,992],[1172.5,997],[1181,1007]];
+    let entered = false, landingReady = false, ready = false, scrubReady = false, opening = false, loadProgress = 0, raf = 0, scrollRaf = 0;
+    let touchStartY = 0;
+    let introState = 'cover', transitionPending = false, hashBooting = false, returningToCover = false;
+    let target = { x:0, y:-0.65 }, current = { x:0, y:-0.65 };
+
+    function notice() { $('media-notice').hidden = false; setTimeout(() => $('media-notice').hidden = true, 5000); }
+    function captureGazeFrame() {
+      if (ready || !gazePoster.complete || !gazePoster.naturalWidth || !eyeSprite.complete || !eyeSprite.naturalWidth) return;
+      bc.drawImage(gazePoster, 0, 0, 2560, 1440);
+      ctx.drawImage(base, 0, 0);
+      ready = true; drawEyes();
+    }
+    function drawEyes() {
+      if (!ready || opening) return;
+      ctx.clearRect(eyeCrop.x, eyeCrop.y, eyeCrop.w, eyeCrop.h);
+      ctx.drawImage(base, eyeCrop.x, eyeCrop.y, eyeCrop.w, eyeCrop.h, eyeCrop.x, eyeCrop.y, eyeCrop.w, eyeCrop.h);
+      const wantedX = 1227.75 + current.x * 65.75;
+      const wantedY = 981 + current.y * 26;
+      let frameIndex = 0, best = Infinity;
+      eyeFrames.forEach((point, index) => {
+        const distance = Math.hypot((point[0] - wantedX) / 65.75, (point[1] - wantedY) / 26);
+        if (distance < best) { best = distance; frameIndex = index; }
+      });
+      const col = frameIndex % eyeCrop.cols, row = Math.floor(frameIndex / eyeCrop.cols);
+      ctx.drawImage(eyeSprite, col * eyeCrop.w, row * eyeCrop.h, eyeCrop.w, eyeCrop.h, eyeCrop.x, eyeCrop.y, eyeCrop.w, eyeCrop.h);
+      canvas.style.opacity = '1';
+    }
+    function animateEyes() {
+      raf = 0; if (!ready || opening || document.hidden) return;
+      current.x += (target.x - current.x) * .16; current.y += (target.y - current.y) * .16; drawEyes();
+      if (Math.abs(target.x-current.x) + Math.abs(target.y-current.y) > .004) raf = requestAnimationFrame(animateEyes);
+    }
+    function aim(x, y) {
+      target.x = Math.max(-1, Math.min(1, x)); target.y = Math.max(-1, Math.min(1, y));
+      if (!raf && !reduced) raf = requestAnimationFrame(animateEyes);
+    }
+    sequence.addEventListener('pointermove', event => {
+      if (introState !== 'cover' || sequenceProgress() > .19) return;
+      const rect = canvas.getBoundingClientRect(), scale = Math.min(rect.width / 2560, rect.height / 1440);
+      const eyeX = rect.left + rect.width / 2, eyeY = rect.top + (rect.height - 1440 * scale) / 2 + 965 * scale;
+      aim((event.clientX - eyeX) / (innerWidth * .34), (event.clientY - eyeY) / (innerHeight * .38));
+    });
+    sequence.addEventListener('pointerleave', () => aim(0, -.65));
+    sequence.addEventListener('pointerdown', event => { if (event.pointerType === 'touch') aim((event.clientX / innerWidth - .5) * 2, (event.clientY / innerHeight - .5) * 2); });
+
+    let introPlaybackToken = 0, introPreparation = null, aboutPreparation = null;
+    function playFilm(video) {
+      video.muted = true; video.defaultMuted = true; video.playsInline = true;
+      return Promise.resolve(video.play());
+    }
+    async function bufferFilm(video) {
+      const connection = navigator.connection;
+      // Unknown or slower networks use the fully buffered lightweight film.
+      // Only request 1080p when both the connection and decoder can handle it.
+      let useBalanced = innerWidth >= 1000 && connection && !connection.saveData &&
+        connection.effectiveType === '4g' && connection.downlink >= 5;
+      if (useBalanced && navigator.mediaCapabilities) {
+        try {
+          const support = await navigator.mediaCapabilities.decodingInfo({
+            type:'file', video:{contentType:'video/mp4; codecs="avc1.4D4028"',
+            width:1920, height:1080, bitrate:2200000, framerate:24}
+          });
+          useBalanced = support.supported && support.smooth && support.powerEfficient;
+        } catch { useBalanced = false; }
+      } else { useBalanced = false; }
+      const source = useBalanced && video.dataset.srcBalanced ? video.dataset.srcBalanced : video.dataset.src;
+      video.muted = true; video.defaultMuted = true; video.playsInline = true;
+      const response = await fetch(source, {cache:'force-cache'});
+      if (!response.ok) throw new Error('Film download failed');
+      const blob = await response.blob();
+      video.src = URL.createObjectURL(blob);
+      video.preload = 'auto';
+      await new Promise((resolve, reject) => {
+        video.addEventListener('loadeddata', resolve, {once:true});
+        video.addEventListener('error', reject, {once:true});
+        video.load();
+      });
+    }
+    function prepareIntroVideo() {
+      if (!introPreparation) introPreparation = bufferFilm(intro).catch(error => {
+        introPreparation = null; throw error;
+      });
+      return introPreparation;
+    }
+    function finishIntro() {
+      introPlaybackToken++;
+      opening = false; intro.pause(); intro.classList.add('finished'); document.body.classList.remove('is-opening');
+      if (introState === 'cover') setScene('cover');
+      captureGazeFrame(); drawEyes(); updateSequence();
+      prepareIntroVideo().then(prepareScrubVideo).catch(() => {});
+    }
+    async function playIntro() {
+      if (!entered) return;
+      const token = ++introPlaybackToken;
+      forcePageTop(); opening = true;
+      setScene('opening'); canvas.style.opacity = '0'; intro.classList.remove('finished');
       document.body.classList.add('is-opening');
+      try {
+        await prepareIntroVideo();
+        if (token !== introPlaybackToken || !opening) return;
+        canvas.style.opacity = '0';
+        intro.classList.remove('finished'); document.body.classList.add('is-opening'); setScene('opening'); if (intro.readyState > 0 && intro.currentTime > .01) intro.currentTime = 0;
+        await playFilm(intro);
+      } catch { if (token === introPlaybackToken) { finishIntro(); notice(); } }
     }
-    setTimeout(() => {
-      $('loader').classList.add('done');
+    function prepareScrubVideo() {
+      if (aboutPreparation) return aboutPreparation;
+      aboutPreparation = bufferFilm(about).then(() => {
+        scrubReady = true;
+        if (introState === 'about') setAboutEndState();
+        else if (transitionPending) startAboutTransition();
+        updateSequence();
+      }).catch(() => { aboutPreparation = null; notice(); });
+      return aboutPreparation;
+    }
+    prepareIntroVideo().then(() => setTimeout(prepareScrubVideo, 800)).catch(notice);
+
+    function enter() {
+      if (entered) return;
+      entered = true; $('load-count').textContent = '100'; $('load-bar').style.width = '100%';
+      $('loader').style.setProperty('--load-ratio', '1');
+      // Establish the opening surface while the loader still covers the stage.
+      forcePageTop();
+      if (reduced) resetToCover();
+      else {
+        introState = 'cover'; opening = true; setScene('opening');
+        canvas.style.opacity = '0'; intro.classList.remove('finished');
+        document.body.classList.add('is-opening');
+      }
       setTimeout(() => {
-        $('loader').hidden = true; document.body.classList.remove('is-loading');
-        landingReady = true;
-        if (reduced) finishIntro(); else playIntro();
-      }, reduced ? 0 : 560);
-    }, reduced ? 0 : 160);
-  }
-  intro.addEventListener('ended', finishIntro);
-  intro.addEventListener('error', () => { finishIntro(); notice(); });
-  gazePoster.addEventListener('load', captureGazeFrame); gaze.addEventListener('seeked', captureGazeFrame); eyeSprite.addEventListener('load', captureGazeFrame);
-  about.addEventListener('error', notice); captureGazeFrame();
-  $('skip').addEventListener('click', finishIntro); $('enter-now').addEventListener('click', enter); $('replay').addEventListener('click', playIntro);
-
-  const loadStarted = performance.now();
-  const loadTimer = setInterval(() => {
-    if (entered) return clearInterval(loadTimer);
-    const elapsed = performance.now() - loadStarted;
-    const mediaReady = ((mobileMedia ? mobileOpeningReady : intro.readyState >= 3) ? 60 : 0) + (ready ? 40 : 0);
-    const pacedProgress = Math.min(100, Math.floor(elapsed / (reduced ? 9 : mobileMedia ? 12 : 30)));
-    loadProgress = Math.max(loadProgress, Math.min(mediaReady, pacedProgress)); $('load-count').textContent = String(loadProgress).padStart(2, '0'); $('load-bar').style.width = loadProgress + '%';
-    $('loader').style.setProperty('--load-ratio', String(loadProgress / 100));
-    if ((loadProgress === 100 && elapsed > (reduced ? 900 : mobileMedia ? 1200 : 3100)) || elapsed > (mobileMedia ? 2200 : 7000)) enter();
-  }, 150);
-
-  function sequenceProgress() {
-    const max = sequence.offsetHeight - innerHeight;
-    return max > 0 ? Math.max(0, Math.min(1, (scrollY - sequence.offsetTop) / max)) : 0;
-  }
-  function setVisualState(cover, film, info) {
-    document.documentElement.style.setProperty('--cover-fade', String(cover));
-    document.documentElement.style.setProperty('--film-fade', String(film));
-    document.documentElement.style.setProperty('--about-fade', String(info));
-  }
-  function setAboutEndState() {
-    if (mobileMedia) stopMobileFilm();
-    introState = 'about'; transitionPending = false; about.pause(); setScene('about-end');
-    setVisualState(0, 1, 1); $('sequence-progress').style.width = '100%';
-  }
-  async function startAboutTransition() {
-    if (!landingReady) return;
-    if (introState === 'playing' || introState === 'waiting' || introState === 'about') return;
-    if (mobileMedia) {
-      stopMobileFilm(); opening = false; introPlaybackToken++;
-      intro.classList.add('finished'); document.body.classList.remove('is-opening');
-      $('stage').classList.remove('about-quick-finish');
-      introState = 'waiting'; transitionPending = false;
-      $('sequence-progress').style.width = '0%';
-      playMobileFilm('about'); return;
+        $('loader').classList.add('done');
+        setTimeout(() => {
+          $('loader').hidden = true; document.body.classList.remove('is-loading');
+          landingReady = true;
+          if (reduced) finishIntro(); else playIntro();
+        }, reduced ? 0 : 560);
+      }, reduced ? 0 : 160);
     }
-    if (!scrubReady) {
-      introState = 'waiting'; transitionPending = true; finishIntro(); setScene('about');
-      setVisualState(0, 1, 0);
+    intro.addEventListener('ended', finishIntro);
+    intro.addEventListener('error', () => { finishIntro(); notice(); });
+    gazePoster.addEventListener('load', captureGazeFrame); gaze.addEventListener('seeked', captureGazeFrame); eyeSprite.addEventListener('load', captureGazeFrame);
+    about.addEventListener('error', notice); captureGazeFrame();
+    $('skip').addEventListener('click', finishIntro); $('enter-now').addEventListener('click', enter); $('replay').addEventListener('click', playIntro);
+
+    const loadStarted = performance.now();
+    const loadTimer = setInterval(() => {
+      if (entered) return clearInterval(loadTimer);
+      const elapsed = performance.now() - loadStarted;
+      const mediaReady = (intro.readyState >= 3 ? 60 : 0) + (ready ? 40 : 0);
+      const pacedProgress = Math.min(100, Math.floor(elapsed / (reduced ? 9 : 30)));
+      loadProgress = Math.max(loadProgress, Math.min(mediaReady, pacedProgress)); $('load-count').textContent = String(loadProgress).padStart(2, '0'); $('load-bar').style.width = loadProgress + '%';
+      $('loader').style.setProperty('--load-ratio', String(loadProgress / 100));
+      if ((loadProgress === 100 && elapsed > (reduced ? 900 : 3100)) || elapsed > 7000) enter();
+    }, 150);
+
+    function sequenceProgress() {
+      const max = sequence.offsetHeight - innerHeight;
+      return max > 0 ? Math.max(0, Math.min(1, (scrollY - sequence.offsetTop) / max)) : 0;
+    }
+    function setVisualState(cover, film, info) {
+      document.documentElement.style.setProperty('--cover-fade', String(cover));
+      document.documentElement.style.setProperty('--film-fade', String(film));
+      document.documentElement.style.setProperty('--about-fade', String(info));
+    }
+    function setAboutEndState() {
+      introState = 'about'; transitionPending = false; about.pause(); setScene('about-end');
+      setVisualState(0, 1, 1); $('sequence-progress').style.width = '100%';
+    }
+    async function startAboutTransition() {
+      if (!landingReady) return;
+      if (introState === 'playing' || introState === 'waiting' || introState === 'about') return;
+      if (!scrubReady) {
+        introState = 'waiting'; transitionPending = true; finishIntro(); setScene('about');
+        setVisualState(0, 1, 0);
+        document.documentElement.style.scrollBehavior = 'auto';
+        scrollTo(0, sequence.offsetTop + sequence.offsetHeight - innerHeight);
+        requestAnimationFrame(() => document.documentElement.style.removeProperty('scroll-behavior'));
+        prepareScrubVideo(); return;
+      }
+      $('stage').classList.remove('about-quick-finish');
+      introState = 'playing'; transitionPending = false; finishIntro(); setScene('about'); if (about.readyState > 0 && about.currentTime > .01) about.currentTime = 0; about.playbackRate = 1;
+      setVisualState(0, 1, 0); $('sequence-progress').style.width = '0%';
       document.documentElement.style.scrollBehavior = 'auto';
       scrollTo(0, sequence.offsetTop + sequence.offsetHeight - innerHeight);
       requestAnimationFrame(() => document.documentElement.style.removeProperty('scroll-behavior'));
-      prepareScrubVideo(); return;
+      try { await playFilm(about); } catch { if (introState === 'playing') setAboutEndState(); }
     }
-    $('stage').classList.remove('about-quick-finish');
-    introState = 'playing'; transitionPending = false; finishIntro(); setScene('about'); if (mobileMedia) { intro.pause(); intro.removeAttribute('src'); intro.load(); introPreparation = null; about.src = about.dataset.src; about.load(); } if (about.readyState > 0 && about.currentTime > .01) about.currentTime = 0; about.playbackRate = 1;
-    setVisualState(0, 1, 0); $('sequence-progress').style.width = '0%';
-    document.documentElement.style.scrollBehavior = 'auto';
-    scrollTo(0, sequence.offsetTop + sequence.offsetHeight - innerHeight);
-    requestAnimationFrame(() => document.documentElement.style.removeProperty('scroll-behavior'));
-    try { await playFilm(about); } catch { if (introState === 'playing') setAboutEndState(); }
-  }
-  function resetToCover() {
-    if (mobileMedia) stopMobileFilm();
-    $('stage').classList.remove('about-quick-finish');
-    introState = 'cover'; setScene('cover'); about.pause(); if (mobileMedia) { about.removeAttribute('src'); about.load(); } if (about.readyState > 0 && about.currentTime > .01) about.currentTime = 0; setVisualState(1, 0, 0); $('sequence-progress').style.width = '0%';
-  }
-  function returnToCover() {
-    if (introState !== 'about' || returningToCover) return;
-    returningToCover = true;
-    resetToCover();
-    history.replaceState(null, '', location.pathname + location.search);
-    scrollTo({ top:sequence.offsetTop, behavior:(reduced || mobileMedia) ? 'auto' : 'smooth' });
-    setTimeout(() => { returningToCover = false; updateSequence(); }, reduced ? 80 : 720);
-  }
-  function updateSequence() {
-    scrollRaf = 0;
-    if (!landingReady) {
-      if (scrollY !== 0) forcePageTop();
-      return;
+    function resetToCover() {
+      $('stage').classList.remove('about-quick-finish');
+      introState = 'cover'; setScene('cover'); about.pause(); if (about.readyState > 0 && about.currentTime > .01) about.currentTime = 0; setVisualState(1, 0, 0); $('sequence-progress').style.width = '0%';
     }
-    if (mobileMedia) {
-      const atHero = scrollY <= sequence.offsetTop + 4;
-      $('site-header').classList.toggle('over-intro', atHero);
-      if (atHero) document.querySelectorAll('#main-nav a').forEach(link =>
-        link.classList.toggle('active', link.getAttribute('href') === (introState === 'cover' ? '#cover' : '#about')));
-      return;
+    function returnToCover() {
+      if (introState !== 'about' || returningToCover) return;
+      returningToCover = true;
+      resetToCover();
+      history.replaceState(null, '', location.pathname + location.search);
+      scrollTo({ top:sequence.offsetTop, behavior:reduced ? 'auto' : 'smooth' });
+      setTimeout(() => { returningToCover = false; updateSequence(); }, reduced ? 80 : 720);
     }
-    const p = sequenceProgress();
-    if (!mobileMedia && p > .02 && introState === 'cover' && entered && !returningToCover) startAboutTransition();
-    if (!mobileMedia && p < .015 && introState === 'about' && !hashBooting) resetToCover();
-    $('site-header').classList.toggle('over-intro', p < .995);
-    if (p < .995) document.querySelectorAll('#main-nav a').forEach(link => link.classList.toggle('active', link.getAttribute('href') === (introState === 'cover' ? '#cover' : '#about')));
-  }
-  addEventListener('scroll', () => { if (!scrollRaf) scrollRaf = requestAnimationFrame(updateSequence); }, { passive:true });
-  addEventListener('resize', updateSequence); about.addEventListener('loadedmetadata', updateSequence); updateSequence();
-
-  const snapPages = [...document.querySelectorAll('.snap-page')];
-  let pageWheelLocked = false;
-  function animatePageLine() {
-    const line = $('page-transition-line');
-    line.classList.remove('moving'); void line.offsetWidth; line.classList.add('moving');
-  }
-  function scrollToPage(top) {
-    pageWheelLocked = true; animatePageLine();
-    scrollTo({ top, behavior:(reduced || mobileMedia) ? 'auto' : 'smooth' });
-    setTimeout(() => { pageWheelLocked = false; }, (reduced || mobileMedia) ? 0 : 900);
-  }
-  function finishAboutPlayback() {
-    if (introState !== 'playing' && introState !== 'waiting') return;
-    $('stage').classList.add('about-quick-finish');
-    setAboutEndState();
-    pageWheelLocked = true;
-    setTimeout(() => { pageWheelLocked = false; }, mobileMedia ? 0 : 650);
-  }
-  function advanceAboutToHonors() {
-    if (pageWheelLocked) return;
-    scrollToPage(snapPages[0].offsetTop);
-  }
-  addEventListener('wheel', event => {
-    if (!landingReady) { event.preventDefault(); return; }
-    if (document.querySelector('dialog[open]')) return;
-    const honorsPage = document.getElementById('honors');
-    const honorsEnd = honorsPage.offsetTop + honorsPage.offsetHeight - innerHeight;
-    if (honorsPage.offsetHeight > innerHeight + 2 && scrollY >= honorsPage.offsetTop - 2 && scrollY <= honorsEnd + 2 && ((event.deltaY > 0 && scrollY < honorsEnd - 2) || (event.deltaY < 0 && scrollY > honorsPage.offsetTop + 2))) return;
-    const sequenceEnd = sequence.offsetTop + sequence.offsetHeight - innerHeight;
-    if (returningToCover) { event.preventDefault(); return; }
-    if (scrollY > sequenceEnd + 2) {
-      if (document.querySelector('dialog[open]') || Math.abs(event.deltaY) < 6) return;
-      if (pageWheelLocked) { event.preventDefault(); return; }
-      const works = $('works');
-      const worksEnd = works.offsetTop + works.offsetHeight - innerHeight;
-      if (works.offsetHeight > innerHeight + 2 && scrollY >= works.offsetTop - 2 && scrollY <= worksEnd + 2) {
-        if ((event.deltaY > 0 && scrollY < worksEnd - 2) || (event.deltaY < 0 && scrollY > works.offsetTop + 2)) return;
+    function updateSequence() {
+      scrollRaf = 0;
+      if (!landingReady) {
+        if (scrollY !== 0) forcePageTop();
+        return;
       }
-      event.preventDefault();
-      const stops = [sequenceEnd, ...snapPages.map(page => page.offsetTop)];
-      let index = 0, distance = Infinity;
-      stops.forEach((stop, i) => { const d = Math.abs(stop - scrollY); if (d < distance) { distance = d; index = i; } });
-      index = Math.max(0, Math.min(stops.length - 1, index + (event.deltaY > 0 ? 1 : -1)));
-      scrollToPage(stops[index]);
-      return;
+      const p = sequenceProgress();
+      if (p > .02 && introState === 'cover' && entered && !returningToCover) startAboutTransition();
+      if (p < .015 && introState === 'about' && !hashBooting) resetToCover();
+      $('site-header').classList.toggle('over-intro', p < .995);
+      if (p < .995) document.querySelectorAll('#main-nav a').forEach(link => link.classList.toggle('active', link.getAttribute('href') === (introState === 'cover' ? '#cover' : '#about')));
     }
-    if (introState === 'playing' || introState === 'waiting') {
-      event.preventDefault();
-      if (event.deltaY > 6) finishAboutPlayback();
-      return;
-    }
-    if (event.deltaY < -6 && introState === 'about') { event.preventDefault(); returnToCover(); return; }
-    if (event.deltaY > 6 && introState === 'about') { event.preventDefault(); advanceAboutToHonors(); return; }
-    if (event.deltaY > 6 && introState === 'cover') { event.preventDefault(); startAboutTransition(); }
-  }, {passive:false});
-  let touchNavigation = false, touchStartX = 0, touchConsumed = false;
-  function changeMobileScene(delta) {
-    if (delta > 0 && introState === 'cover') startAboutTransition();
-    else if (delta > 0 && (introState === 'playing' || introState === 'waiting')) finishAboutPlayback();
-    else if (delta < 0 && introState === 'about') returnToCover();
-  }
-  sequence.addEventListener('touchstart', event => {
-    const point = event.touches[0];
-    const end = sequence.offsetTop + sequence.offsetHeight - innerHeight;
-    touchNavigation = event.touches.length === 1 && landingReady && !pageWheelLocked &&
-      (mobileMedia ? scrollY <= sequence.offsetTop + 4 : scrollY <= end + 2) &&
-      !event.target.closest('a,button,input,select,textarea,dialog');
-    touchConsumed = false;
-    touchStartY = point?.clientY || 0; touchStartX = point?.clientX || 0;
-  }, {passive:true});
-  sequence.addEventListener('touchmove', event => {
-    if (touchConsumed) { if (event.cancelable) event.preventDefault(); return; }
-    if (!touchNavigation || event.touches.length !== 1) return;
-    const point = event.touches[0];
-    const delta = touchStartY - point.clientY, dx = point.clientX - touchStartX;
-    if (Math.abs(delta) <= Math.abs(dx) || Math.abs(delta) < 8) return;
-    // Once the introduction finishes, the next upward swipe scrolls the document naturally.
-    if (mobileMedia && introState === 'about' && delta > 0) { touchNavigation = false; return; }
-    if (event.cancelable) event.preventDefault();
-    if (mobileMedia && Math.abs(delta) >= 35) {
-      touchConsumed = true; touchNavigation = false; changeMobileScene(delta);
-    }
-  }, {passive:false});
-  sequence.addEventListener('touchcancel', () => { touchNavigation = touchConsumed = false; }, {passive:true});
-  sequence.addEventListener('touchend', event => {
-    if (touchConsumed) { retryMobileNativeGesture(event); touchConsumed = touchNavigation = false; return; }
-    if (!touchNavigation) return;
-    touchNavigation = false;
-    const delta = touchStartY - (event.changedTouches[0]?.clientY || touchStartY);
-    if (mobileMedia) { if (Math.abs(delta) > 35) changeMobileScene(delta); return; }
-    if (delta > 35 && introState === 'cover') startAboutTransition();
-    else if (delta > 35 && (introState === 'playing' || introState === 'waiting')) finishAboutPlayback();
-    else if (delta > 35 && introState === 'about') advanceAboutToHonors();
-    else if (delta < -35 && introState === 'about') returnToCover();
-  }, {passive:true});
-  about.addEventListener('timeupdate', () => {
-    if (introState !== 'playing' || !about.duration) return;
-    const p = Math.min(1, about.currentTime / about.duration);
-    $('sequence-progress').style.width = (p * 100) + '%';
-    document.documentElement.style.setProperty('--about-fade', String(Math.max(0, Math.min(1, (p - .68) / .2))));
-  });
-  about.addEventListener('ended', () => {
-    setAboutEndState();
-    updateSequence();
-  });
-  document.querySelectorAll('a[href="#about"]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); if (mobileMedia && event.isTrusted) mobileNativeAllowed = true; startAboutTransition(); }));
+    addEventListener('scroll', () => { if (!scrollRaf) scrollRaf = requestAnimationFrame(updateSequence); }, { passive:true });
+    addEventListener('resize', updateSequence); about.addEventListener('loadedmetadata', updateSequence); updateSequence();
 
-  document.querySelectorAll('a[href="#cover"]').forEach(link => link.addEventListener('click', event => {
-    if (!mobileMedia || !landingReady) return;
-    event.preventDefault(); transitionPending = false; resetToCover(); finishIntro();
-    scrollTo({top:sequence.offsetTop, behavior:'auto'});
-  }));
+    let pageWheelLocked = false;
+    function animatePageLine() {
+      const line = $('page-transition-line');
+      line.classList.remove('moving'); void line.offsetWidth; line.classList.add('moving');
+    }
+    function scrollToPage(top) {
+      pageWheelLocked = true; animatePageLine();
+      scrollTo({ top, behavior:reduced ? 'auto' : 'smooth' });
+      setTimeout(() => { pageWheelLocked = false; }, reduced ? 0 : 900);
+    }
+    function finishAboutPlayback() {
+      if (introState !== 'playing' && introState !== 'waiting') return;
+      $('stage').classList.add('about-quick-finish');
+      setAboutEndState();
+      pageWheelLocked = true;
+      setTimeout(() => { pageWheelLocked = false; }, 650);
+    }
+    function advanceAboutToHonors() {
+      if (pageWheelLocked) return;
+      scrollToPage(snapPages[0].offsetTop);
+    }
+    addEventListener('wheel', event => {
+      if (!landingReady) { event.preventDefault(); return; }
+      if (document.querySelector('dialog[open]')) return;
+      const honorsPage = document.getElementById('honors');
+      const honorsEnd = honorsPage.offsetTop + honorsPage.offsetHeight - innerHeight;
+      if (honorsPage.offsetHeight > innerHeight + 2 && scrollY >= honorsPage.offsetTop - 2 && scrollY <= honorsEnd + 2 && ((event.deltaY > 0 && scrollY < honorsEnd - 2) || (event.deltaY < 0 && scrollY > honorsPage.offsetTop + 2))) return;
+      const sequenceEnd = sequence.offsetTop + sequence.offsetHeight - innerHeight;
+      if (returningToCover) { event.preventDefault(); return; }
+      if (scrollY > sequenceEnd + 2) {
+        if (document.querySelector('dialog[open]') || Math.abs(event.deltaY) < 6) return;
+        if (pageWheelLocked) { event.preventDefault(); return; }
+        const works = $('works');
+        const worksEnd = works.offsetTop + works.offsetHeight - innerHeight;
+        if (works.offsetHeight > innerHeight + 2 && scrollY >= works.offsetTop - 2 && scrollY <= worksEnd + 2) {
+          if ((event.deltaY > 0 && scrollY < worksEnd - 2) || (event.deltaY < 0 && scrollY > works.offsetTop + 2)) return;
+        }
+        event.preventDefault();
+        const stops = [sequenceEnd, ...snapPages.map(page => page.offsetTop)];
+        let index = 0, distance = Infinity;
+        stops.forEach((stop, i) => { const d = Math.abs(stop - scrollY); if (d < distance) { distance = d; index = i; } });
+        index = Math.max(0, Math.min(stops.length - 1, index + (event.deltaY > 0 ? 1 : -1)));
+        scrollToPage(stops[index]);
+        return;
+      }
+      if (introState === 'playing' || introState === 'waiting') {
+        event.preventDefault();
+        if (event.deltaY > 6) finishAboutPlayback();
+        return;
+      }
+      if (event.deltaY < -6 && introState === 'about') { event.preventDefault(); returnToCover(); return; }
+      if (event.deltaY > 6 && introState === 'about') { event.preventDefault(); advanceAboutToHonors(); return; }
+      if (event.deltaY > 6 && introState === 'cover') { event.preventDefault(); startAboutTransition(); }
+    }, {passive:false});
+    let touchNavigation = false, touchStartX = 0;
+    sequence.addEventListener('touchstart', event => {
+      const point = event.touches[0];
+      const end = sequence.offsetTop + sequence.offsetHeight - innerHeight;
+      touchNavigation = event.touches.length === 1 && landingReady && !pageWheelLocked &&
+        scrollY <= end + 2 &&
+        !event.target.closest('a,button,input,select,textarea,dialog');
+      touchStartY = point?.clientY || 0; touchStartX = point?.clientX || 0;
+    }, {passive:true});
+    sequence.addEventListener('touchmove', event => {
+      if (!touchNavigation || event.touches.length !== 1) return;
+      const point = event.touches[0];
+      const delta = touchStartY - point.clientY, dx = point.clientX - touchStartX;
+      if (Math.abs(delta) <= Math.abs(dx) || Math.abs(delta) < 8) return;
+      if (event.cancelable) event.preventDefault();
+    }, {passive:false});
+    sequence.addEventListener('touchcancel', () => { touchNavigation = false; }, {passive:true});
+    sequence.addEventListener('touchend', event => {
+      if (!touchNavigation) return;
+      touchNavigation = false;
+      const delta = touchStartY - (event.changedTouches[0]?.clientY || touchStartY);
+      if (delta > 35 && introState === 'cover') startAboutTransition();
+      else if (delta > 35 && (introState === 'playing' || introState === 'waiting')) finishAboutPlayback();
+      else if (delta > 35 && introState === 'about') advanceAboutToHonors();
+      else if (delta < -35 && introState === 'about') returnToCover();
+    }, {passive:true});
+    about.addEventListener('timeupdate', () => {
+      if (introState !== 'playing' || !about.duration) return;
+      const p = Math.min(1, about.currentTime / about.duration);
+      $('sequence-progress').style.width = (p * 100) + '%';
+      document.documentElement.style.setProperty('--about-fade', String(Math.max(0, Math.min(1, (p - .68) / .2))));
+    });
+    about.addEventListener('ended', () => {
+      setAboutEndState();
+      updateSequence();
+    });
+    document.querySelectorAll('.intro-sequence a[href="#about"], #main-nav a[href="#about"]').forEach(link => {
+      link.addEventListener('click', event => {
+        event.preventDefault();
+        startAboutTransition();
+      });
+    });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) intro.pause(); else if (opening) playFilm(intro); });
+    if (location.hash && location.hash !== '#cover') enter();
+    if (location.hash === '#about') setTimeout(() => {
+      setAboutEndState(); document.documentElement.style.scrollBehavior = 'auto';
+      scrollTo(0, sequence.offsetTop + sequence.offsetHeight - innerHeight);
+      requestAnimationFrame(() => { document.documentElement.style.removeProperty('scroll-behavior'); hashBooting = false; updateSequence(); });
+    }, 50);
+  }
+
+  if (mobileMedia) {
+    $('loader').hidden = true;
+    document.body.classList.remove('is-loading');
+    document.querySelectorAll('a[href="#cover"]').forEach(link => { link.href = '#mobile-cover'; });
+  } else {
+    initDesktopIntro();
+  }
+
   const menuButton = $('menu-button');
   menuButton.addEventListener('click', () => {
     const open = document.body.classList.toggle('menu-open'); menuButton.setAttribute('aria-expanded', String(open));
@@ -669,16 +468,9 @@
 
   const links = [...document.querySelectorAll('#main-nav a')];
   const activate = id => links.forEach(link => link.classList.toggle('active', link.getAttribute('href') === '#' + id));
-  new IntersectionObserver(entries => { if (entries[0].isIntersecting) activate('cover'); }, { threshold:.2 }).observe(sequence);
   document.body.classList.add('motion-ready');
   const revealObserver = new IntersectionObserver(entries => entries.forEach(entry => entry.target.classList.toggle('is-active', entry.isIntersecting)), { threshold:.35 });
   snapPages.forEach(page => revealObserver.observe(page));
-  ['honors','works','contact'].forEach(id => new IntersectionObserver(entries => { if (entries[0].isIntersecting) activate(id); }, { threshold:.28 }).observe($(id)));
-  document.addEventListener('visibilitychange', () => { if (document.hidden) intro.pause(); else if (opening && !mobileMedia) playFilm(intro); });
-  if (location.hash && location.hash !== '#cover') enter();
-  if (location.hash === '#about') setTimeout(() => {
-    setAboutEndState(); document.documentElement.style.scrollBehavior = 'auto';
-    scrollTo(0, sequence.offsetTop + sequence.offsetHeight - innerHeight);
-    requestAnimationFrame(() => { document.documentElement.style.removeProperty('scroll-behavior'); hashBooting = false; updateSequence(); });
-  }, 50);
+  const sections = mobileMedia ? ['mobile-cover', 'about', 'honors', 'works', 'contact'] : ['honors', 'works', 'contact'];
+  sections.forEach(id => new IntersectionObserver(entries => { if (entries[0].isIntersecting) activate(id); }, { threshold:.28 }).observe($(id)));
 })();
