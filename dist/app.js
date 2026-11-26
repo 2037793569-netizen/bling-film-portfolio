@@ -415,7 +415,8 @@
     { index:'BRAND FILM / 2026', title:'美团一对一急送品牌创意短片', titleLines:['美团一对一急送','品牌创意短片'], description:'诅咒的藤蔓将公主囚于高塔，王子的剑与魔法都未能救她。绝望的黎明，他点亮手机，召唤穿梭于云层与荆棘的美团一对一急送。骑手驾驭喷焰扫帚，穿越巨网，及时将戒指送到公主面前。金光驱散荆棘，玫瑰盛开；恋人在晨光中相拥时，无名骑手已在云端敬礼，奔赴下一场「不可能完成」的使命。', image:'assets/meituan-express-detail.webp', poster:true, year:'2026', format:'品牌广告', award:'美团外卖 1 对 1 急送 AI 创作大赛惊喜翻牌奖', url:'https://www.zcool.com.cn/work/ZNzMwOTE0NDQ=.html' },
     { index:'ANIMATED MV / 2026', title:'Pony in my head', titleLines:['Pony in','my head'], description:'小公主好喜欢画画和做梦，因为梦里什么都有。在这里，她能实现独属于自己的天马行空。这次六一，快乐小马带着小公主在梦里开启零食世界大冒险：棉花糖、巧克力，还有最爱的爆米花。', image:'assets/pony-in-my-head-detail.webp', poster:true, year:'2026', format:'动画 MV', award:'Happy Horse × 阿里云 × TapNow「天马行空」· 六一MV造梦大赛杰出入围奖；站酷首页推荐', url:'https://www.zcool.com.cn/work/ZNzM2ODY1NDQ=.html' },
     { index:'MV / 2026', title:'阿诺拉 · 三火flame', titleLines:['阿诺拉','三火flame'], description:'一间房间，一台电视，一盏酒杯，一只发夹，以及那个代表内心深处的另一个自己。释怀那些未曾开口的疯癫与眷恋。', image:'assets/anora-sanhuo-mv-detail.webp', poster:true, year:'2026', format:'MV', award:'MVLAND 嘻哈狂欢派对「最能代表嘻哈态度的 AI MV」创作大赛三火明星翻牌；站酷首页推荐', url:'https://www.zcool.com.cn/work/ZNzM5MDY4MTY=.html' },
-    {"index":"AIGC TUTORIAL / 2025","title":"Tapnow非遗短片全流程教程","titleLines":["Tapnow非遗短片","全流程教程"],"description":"介绍 Tapnow 的功能，并以非遗短片为例，讲解从前期构思到成片的完整制作流程。","image":"assets/tapnow-heritage-1280.webp","poster":true,"year":"2025","format":"教程","awardLabel":"VIEWS / 观看量","award":"小红书观看量破 10 万","watchLabel":"在小红书观看","watchMeta":"VIEW THE TUTORIAL / XIAOHONGSHU","url":"https://xhslink.cn/o/TUypeNejOi"}
+    {"index":"AIGC TUTORIAL / 2025","title":"Tapnow非遗短片全流程教程","titleLines":["Tapnow非遗短片","全流程教程"],"description":"介绍 Tapnow 的功能，并以非遗短片为例，讲解从前期构思到成片的完整制作流程。","image":"assets/tapnow-heritage-1280.webp","poster":true,"year":"2025","format":"教程","awardLabel":"VIEWS / 观看量","award":"小红书观看量破 10 万","watchLabel":"在小红书观看","watchMeta":"VIEW THE TUTORIAL / XIAOHONGSHU","url":"https://xhslink.cn/o/TUypeNejOi"},
+    {"index":"AIGC TUTORIAL","title":"风格化角色教程","titleLines":["风格化角色","教程"],"description":"用几个实用的小技巧解决风格化角色设计中的常见问题，让设计流程更顺手。","image":"assets/stylized-character-1280.webp","poster":true,"year":null,"format":"教程","watchLabel":"在小红书观看","watchMeta":"VIEW THE TUTORIAL / XIAOHONGSHU","url":"https://www.xiaohongshu.com/explore/6b06ac7e000000002b026995?xsec_token=AB1h83bdmh0tkXtQIQFgIaS-1s1WRaDBqQksKnOka3vpw=&xsec_source=pc_user"}
   ];
   const dialog = $('project-dialog');
   const dialogImage = $('dialog-image');
@@ -466,7 +467,7 @@
     if (project.url) {
       const watchUrl = new URL(project.url, document.baseURI);
       if (mobileMedia) {
-        if (watchUrl.hostname === 'xhslink.cn') {
+        if (watchUrl.hostname === 'xhslink.cn' || watchUrl.hostname === 'www.xiaohongshu.com') {
           watchLink.target = '_self';
         } else if (watchUrl.hostname === 'www.douyin.com' && watchUrl.pathname.startsWith('/user/')) {
           const videoId = watchUrl.searchParams.get('modal_id');
